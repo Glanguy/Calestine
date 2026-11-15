@@ -1,0 +1,2956 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Calenstine">
+<meta name="theme-color" content="#f7f5f2">
+<title>Calenstine</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root {
+  --bg: #f7f5f2;
+  --ink: #2f2b3a;
+  --muted: #8a8597;
+  --accent: #8b7fd6;
+  --accent-soft: #ece8fb;
+  --line: #e4e0ea;
+  --panel: #ffffff;
+  --danger: #d9534f;
+  --ok: #3aa66a;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body {
+  margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent; overscroll-behavior: none;
+}
+body {
+  display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  -webkit-user-select: none; user-select: none;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- Barre du haut ---------- */
+#topbar { display: flex; align-items: center; gap: 10px; padding: 6px 12px; min-height: 54px; flex-wrap: wrap; }
+.nav-group, .right-group { display: flex; align-items: center; gap: 4px; }
+.nav-group { flex: 1 1 auto; min-width: 0; }
+.right-group { margin-left: auto; }
+#title { font-size: 19px; font-weight: 700; margin: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.icon-btn { width: 40px; height: 40px; border: 0; background: transparent; border-radius: 12px; display: grid; place-items: center; flex: none; }
+.icon-btn:active { background: var(--accent-soft); }
+.icon-btn svg { width: 24px; height: 24px; }
+.pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 7px 14px; font-size: 15px; white-space: nowrap; }
+.pill:active { background: var(--accent-soft); }
+.seg { display: flex; background: #ebe8f0; border-radius: 12px; padding: 3px; }
+.seg button { border: 0; background: transparent; padding: 7px 14px; border-radius: 9px; font-size: 15px; font-weight: 500; color: #5b5668; }
+.seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.08); font-weight: 650; }
+.chip { font-size: 12.5px; padding: 4px 9px; border-radius: 999px; background: #ebe8f0; color: #5b5668; white-space: nowrap; }
+.chip.ok { background: #e3f4ea; color: #2d7a50; }
+.chip.err { background: #fde2e1; color: #a32f2b; font-weight: 600; }
+.chip.warn { background: #fff1d6; color: #8a5a00; }
+
+/* ---------- Barre d'outils ---------- */
+#toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 10px 8px; overflow-x: auto; scrollbar-width: none; flex: none; }
+#toolbar::-webkit-scrollbar { display: none; }
+#toolbar .group { display: flex; align-items: center; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 3px; flex: none; }
+#toolbar .group > button { border: 0; background: transparent; border-radius: 10px; height: 40px; min-width: 40px; padding: 0 8px; display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
+#toolbar .group > button svg { width: 22px; height: 22px; }
+#toolbar .group > button span { display: none; }
+#toolbar .group > button.on { background: var(--accent-soft); color: #5b4bb7; }
+#toolbar .group > button:disabled { opacity: .35; }
+#toolbar .group > button.danger { color: var(--danger); }
+#tools button.on span { display: inline; }
+#toolbar #colors > button.sw { width: 30px; min-width: 30px; height: 30px; border-radius: 50%; padding: 0; margin: 0 2px; background: var(--c); border: 3px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+#toolbar #colors > button.sw.on { box-shadow: 0 0 0 2.5px var(--accent); }
+#colors.dim { opacity: .35; pointer-events: none; }
+#sizes i { display: block; width: var(--d); height: var(--d); border-radius: 50%; background: currentColor; }
+#sizes.dim { opacity: .35; pointer-events: none; }
+#ctx button { font-size: 14px; font-weight: 600; }
+#ctx.is-text .img-only, #ctx.is-img .txt-only { display: none; }
+@media (min-width: 1360px) { #toolbar .group > button span { display: inline; } }
+
+/* ---------- Zone de dessin ---------- */
+#stage {
+  position: relative; flex: 1; overflow: hidden; touch-action: none;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+#paper {
+  position: absolute; left: 0; top: 0; transform-origin: 0 0; background: #fff;
+  border-radius: 16px; box-shadow: 0 3px 18px rgba(50, 35, 110, .13);
+}
+#grid { position: absolute; inset: 0; width: 100%; height: 100%; display: block; stroke: none; fill: initial; stroke-width: initial; }
+#grid .nav { pointer-events: none; }
+.mode-move #grid .nav { pointer-events: auto; cursor: pointer; }
+#objects { position: absolute; inset: 0; pointer-events: none; }
+.obj { pointer-events: auto; }
+.mode-draw .obj { pointer-events: none; }
+#stage canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+#cv-hl { opacity: .42; mix-blend-mode: multiply; }
+#cv-live.hl { opacity: .42; mix-blend-mode: multiply; }
+
+.obj { position: absolute; touch-action: none; }
+.obj-text {
+  white-space: pre-wrap; word-break: break-word; line-height: 1.25; padding: 4px 6px; min-height: 1.6em;
+  outline: none; border-radius: 6px; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+}
+.mode-text .obj-text { -webkit-user-select: text; user-select: text; cursor: text; background: rgba(139,127,214,.06); box-shadow: inset 0 0 0 1px rgba(139,127,214,.35); }
+.mode-text .obj-text:focus { background: rgba(139,127,214,.10); box-shadow: inset 0 0 0 2px var(--accent); }
+.mode-move .obj { cursor: grab; }
+.obj img { width: 100%; height: 100%; display: block; pointer-events: none; -webkit-user-drag: none; object-fit: contain; }
+.obj-image img { border-radius: 6px; box-shadow: 0 2px 10px rgba(0,0,0,.18); object-fit: cover; }
+.obj.missing { background: repeating-linear-gradient(45deg, #f1eff5, #f1eff5 10px, #e7e3ee 10px, #e7e3ee 20px); border-radius: 6px; }
+.obj.sel { outline: 3px dashed var(--accent); outline-offset: 4px; }
+.handle { position: absolute; right: -18px; bottom: -18px; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); border: 4px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.25); display: none; }
+.mode-move .obj.sel .handle { display: block; }
+
+/* ---------- Bandeaux & toast ---------- */
+#banners { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 20; width: min(640px, calc(100% - 24px)); pointer-events: none; }
+.banner { pointer-events: auto; background: #2f2b3a; color: #fff; border-radius: 14px; padding: 11px 12px 11px 16px; display: flex; align-items: center; gap: 10px; font-size: 14.5px; box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+.banner.err { background: #a32f2b; }
+.banner p { margin: 0; flex: 1; line-height: 1.35; }
+.banner button { border: 0; background: rgba(255,255,255,.16); color: #fff; border-radius: 9px; padding: 7px 11px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+#toast { position: fixed; left: 50%; top: calc(64px + env(safe-area-inset-top)); transform: translate(-50%, -20px); background: #2f2b3a; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14.5px; opacity: 0; transition: .25s; z-index: 30; pointer-events: none; max-width: 90vw; text-align: center; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Fenêtres ---------- */
+dialog { border: 0; border-radius: 20px; padding: 0; width: min(640px, calc(100vw - 28px)); max-height: calc(100dvh - 60px); background: var(--bg); color: var(--ink); box-shadow: 0 20px 60px rgba(30, 20, 70, .3); -webkit-user-select: text; user-select: text; }
+dialog::backdrop { background: rgba(30, 25, 50, .35); }
+dialog[open] { display: flex; flex-direction: column; }
+.dlg-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; position: sticky; top: 0; background: var(--bg); }
+.dlg-head h2 { margin: 0; font-size: 20px; flex: 1; }
+#dlg-menu #menu-body, #dlg-search #search-results, #dlg-stickers #st-grid { overflow-y: auto; }
+#menu-body { padding: 0 16px 18px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
+.card h3 { margin: 0 0 8px; font-size: 16px; }
+.card p { margin: 6px 0; line-height: 1.4; font-size: 14.5px; }
+.row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.row.wrap { flex-wrap: wrap; padding: 0 16px; }
+.btn { border: 0; background: var(--accent); color: #fff; border-radius: 11px; padding: 10px 14px; font-weight: 600; font-size: 15px; }
+.btn.ghost { background: #ebe8f0; color: var(--ink); }
+.btn.danger { background: #fde2e1; color: #a32f2b; }
+.btn:disabled { opacity: .5; }
+.muted { color: var(--muted); }
+.small { font-size: 13.5px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 14.5px; }
+.kv b { font-weight: 600; }
+.yes { color: var(--ok); font-weight: 600; }
+.no { color: var(--danger); font-weight: 600; }
+label.field { display: block; margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+label.field input { display: block; width: 100%; margin-top: 4px; }
+input[type=text], input[type=url], input[type=email], input[type=password], input[type=search] {
+  font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 11px; background: #fff; color: var(--ink); width: 100%;
+}
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14.5px; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
+
+#dlg-search .dlg-head input { flex: 1; }
+#search-info { padding: 0 18px; margin: 0 0 6px; }
+#search-results { list-style: none; margin: 0; padding: 0 12px 16px; }
+#search-results li button { width: 100%; text-align: left; border: 0; background: var(--panel); border-radius: 12px; padding: 10px 14px; margin-bottom: 6px; display: block; }
+#search-results li button:active { background: var(--accent-soft); }
+#search-results .r-page { font-size: 12.5px; color: var(--muted); }
+#search-results .r-text { font-size: 16px; margin-top: 2px; }
+#search-results mark { background: #ffe9a6; color: inherit; border-radius: 3px; }
+
+#st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; padding: 8px 16px 18px; }
+#st-grid .st { position: relative; aspect-ratio: 1; background: #fff; border: 1px solid var(--line); border-radius: 14px; display: grid; place-items: center; padding: 8px; }
+#st-grid .st img { max-width: 100%; max-height: 100%; }
+#st-grid .st .x { position: absolute; top: -6px; right: -6px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: var(--danger); color: #fff; font-weight: 700; display: none; }
+#st-grid.editing .st .x { display: block; }
+#st-grid .empty { grid-column: 1 / -1; color: var(--muted); font-size: 14.5px; }
+
+@media (max-width: 760px) {
+  .seg button { padding: 6px 9px; font-size: 14px; }
+  #title { font-size: 17px; }
+}
+
+</style>
+</head>
+<body class="mode-draw mode-pen">
+
+<header id="topbar">
+  <div class="nav-group">
+    <button id="btn-prev" class="icon-btn" aria-label="Précédent"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <h1 id="title">Calenstine</h1>
+    <button id="btn-next" class="icon-btn" aria-label="Suivant"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    <button id="btn-today" class="pill">Aujourd’hui</button>
+  </div>
+  <div class="seg" id="view-seg">
+    <button data-view="day">Jour</button><button data-view="week">Semaine</button><button data-view="month">Mois</button><button data-view="year">Année</button>
+  </div>
+  <div class="right-group">
+    <span id="save-status" class="chip ok">✓ Enregistré</span>
+    <span id="sync-status" class="chip" hidden></span>
+    <button id="btn-search" class="icon-btn" aria-label="Rechercher"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
+    <button id="btn-menu" class="icon-btn" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+</header>
+
+<nav id="toolbar">
+  <div class="group" id="tools">
+    <button data-mode="pen" title="Stylo"><svg viewBox="0 0 24 24"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 013 3L8 19l-4 1z"/><path d="M14.5 6.5l3 3"/></svg><span>Stylo</span></button>
+    <button data-mode="highlighter" title="Surligneur"><svg viewBox="0 0 24 24"><path d="M9 14l-2.5 5H12l1.5-2.5"/><path d="M9 14l6.5-10 4 2.5L13 16.5z"/><path d="M4 21h16" class="hl-line"/></svg><span>Surligneur</span></button>
+    <button data-mode="eraser" title="Gomme"><svg viewBox="0 0 24 24"><path d="M9 20h11"/><path d="M4.5 15.5l9-9a2 2 0 012.8 0l3.2 3.2a2 2 0 010 2.8L13 19H8z"/><path d="M9 11l5 5"/></svg><span>Gomme</span></button>
+    <button data-mode="text" title="Texte"><svg viewBox="0 0 24 24"><path d="M5 6V4.5h14V6M12 4.5V20M9 20h6"/></svg><span>Texte</span></button>
+    <button data-mode="move" title="Déplacer / sélectionner"><svg viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 013 0V12M11 11V4a1.5 1.5 0 013 0v7M14 11V5.5a1.5 1.5 0 013 0V13M17 9.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1.5a6 6 0 01-5-2.7L4.6 14.4a1.6 1.6 0 012.6-1.8L8 13.5"/></svg><span>Déplacer</span></button>
+  </div>
+  <div class="group" id="colors"></div>
+  <div class="group" id="sizes">
+    <button data-size="0" aria-label="Fin"><i style="--d:5px"></i></button>
+    <button data-size="1" aria-label="Moyen"><i style="--d:9px"></i></button>
+    <button data-size="2" aria-label="Épais"><i style="--d:14px"></i></button>
+  </div>
+  <div class="group">
+    <button id="btn-photo" title="Ajouter une photo"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 8"/></svg><span>Photo</span></button>
+    <button id="btn-stickers" title="Stickers"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.5 5.3 5.8.7-4.3 4 1.1 5.8L12 16.5l-5.1 2.8 1.1-5.8-4.3-4 5.8-.7z"/></svg><span>Stickers</span></button>
+  </div>
+  <div class="group">
+    <button id="btn-undo" title="Annuler"><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg></button>
+    <button id="btn-redo" title="Rétablir"><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 000 11H13"/></svg></button>
+  </div>
+  <div class="group" id="ctx" hidden>
+    <button id="ctx-smaller" class="txt-only" title="Texte plus petit">A−</button>
+    <button id="ctx-bigger" class="txt-only" title="Texte plus grand">A+</button>
+    <button id="ctx-front" title="Mettre au premier plan">Devant</button>
+    <button id="ctx-sticker" class="img-only" title="Ajouter à mes stickers">★ Sticker</button>
+    <button id="ctx-delete" class="danger" title="Supprimer">Supprimer</button>
+  </div>
+</nav>
+
+<main id="stage">
+  <div id="paper">
+    <svg id="grid" viewBox="0 0 1400 990" preserveAspectRatio="none"></svg>
+    <div id="objects"></div>
+  </div>
+  <canvas id="cv-hl"></canvas>
+  <canvas id="cv-ink"></canvas>
+  <canvas id="cv-live"></canvas>
+</main>
+
+<div id="banners"></div>
+
+<dialog id="dlg-search">
+  <div class="dlg-head">
+    <input id="search-input" type="search" placeholder="Rechercher dans ton écriture et tes textes…" autocomplete="off" enterkeyhint="search">
+    <button class="pill" data-close>Fermer</button>
+  </div>
+  <p id="search-info" class="muted small"></p>
+  <ul id="search-results"></ul>
+</dialog>
+
+<dialog id="dlg-menu">
+  <div class="dlg-head"><h2>Menu</h2><button class="pill" data-close>Fermer</button></div>
+  <div id="menu-body"></div>
+</dialog>
+
+<dialog id="dlg-stickers">
+  <div class="dlg-head"><h2>Mes stickers</h2><button class="pill" data-close>Fermer</button></div>
+  <div class="row wrap">
+    <button id="st-add" class="btn">Ajouter depuis Photos</button>
+    <button id="st-paste" class="btn">Coller</button>
+    <button id="st-edit" class="btn ghost">Modifier</button>
+  </div>
+  <p class="muted small">Astuce iPhone/iPad : dans Photos, appuie longuement sur un sujet → « Copier », puis « Coller » ici : le fond est déjà détouré.</p>
+  <div id="st-grid"></div>
+</dialog>
+
+<input type="file" id="file-image" accept="image/*" hidden>
+<input type="file" id="file-backup" accept="application/json,.json" hidden>
+
+<script type="module">
+var __defProp = Object.defineProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+// ../calenstine/js/db.js
+var db_exports = {};
+__export(db_exports, {
+  byIndex: () => byIndex,
+  count: () => count,
+  get: () => get,
+  getAll: () => getAll,
+  getMeta: () => getMeta,
+  openDB: () => openDB,
+  put: () => put,
+  putMany: () => putMany,
+  setMeta: () => setMeta
+});
+var DB_NAME = "calenstine";
+var DB_VERSION = 1;
+var dbPromise = null;
+function openDB() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      for (const name of ["strokes", "objects"]) {
+        const s2 = db.createObjectStore(name, { keyPath: "id" });
+        s2.createIndex("pageId", "pageId");
+        s2.createIndex("dirty", "dirty");
+      }
+      const a2 = db.createObjectStore("assets", { keyPath: "id" });
+      a2.createIndex("dirty", "dirty");
+      a2.createIndex("isSticker", "isSticker");
+      db.createObjectStore("ocr", { keyPath: "pageId" });
+      db.createObjectStore("meta", { keyPath: "key" });
+    };
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
+    req.onerror = () => reject(req.error);
+    req.onblocked = () => reject(new Error("Base de donn\xE9es bloqu\xE9e par un autre onglet"));
+  });
+  return dbPromise;
+}
+var reqP = (r2) => new Promise((res, rej) => {
+  r2.onsuccess = () => res(r2.result);
+  r2.onerror = () => rej(r2.error);
+});
+async function tx(stores, mode, fn) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    let t2;
+    try {
+      t2 = mode === "readwrite" ? db.transaction(stores, mode, { durability: "strict" }) : db.transaction(stores, mode);
+    } catch (e2) {
+      t2 = db.transaction(stores, mode);
+    }
+    let out;
+    Promise.resolve(fn(t2)).then((v2) => {
+      out = v2;
+    }, reject);
+    t2.oncomplete = () => resolve(out);
+    t2.onerror = () => reject(t2.error);
+    t2.onabort = () => reject(t2.error || new Error("Transaction annul\xE9e"));
+  });
+}
+var put = (store, rec) => tx([store], "readwrite", (t2) => {
+  t2.objectStore(store).put(rec);
+});
+var putMany = (store, recs) => tx([store], "readwrite", (t2) => {
+  const s2 = t2.objectStore(store);
+  for (const r2 of recs) s2.put(r2);
+});
+var get = (store, key) => tx([store], "readonly", (t2) => reqP(t2.objectStore(store).get(key)));
+var getAll = (store) => tx([store], "readonly", (t2) => reqP(t2.objectStore(store).getAll()));
+var byIndex = (store, index, value) => tx([store], "readonly", (t2) => reqP(t2.objectStore(store).index(index).getAll(value)));
+var count = (store) => tx([store], "readonly", (t2) => reqP(t2.objectStore(store).count()));
+var getMeta = async (key) => (await get("meta", key))?.value;
+var setMeta = (key, value) => put("meta", { key, value });
+
+// ../calenstine/js/state.js
+var S = {
+  view: "month",
+  date: /* @__PURE__ */ new Date(),
+  pageId: "",
+  L: { w: 1400, h: 990 },
+  // taille logique d'une page
+  fit: 1,
+  zoom: 1,
+  s: 1,
+  ox: 0,
+  oy: 0,
+  // transformation page -> écran
+  dpr: 1,
+  stageW: 0,
+  stageH: 0,
+  strokes: [],
+  // traits de la page affichée
+  objects: [],
+  // textes / photos / stickers de la page
+  mode: "pen",
+  // pen | highlighter | eraser | text | move
+  color: "#2f2b3a",
+  hlColor: "#ffe14d",
+  sizeIdx: 1,
+  selectedId: null,
+  settings: { fingerDraw: false, ocr: true },
+  pendingSaves: 0,
+  lastSaved: 0,
+  saveError: null
+};
+var bus = new EventTarget();
+var on = (name, fn) => bus.addEventListener(name, (e2) => fn(e2.detail));
+var emit = (name, detail) => bus.dispatchEvent(new CustomEvent(name, { detail }));
+var isDrawMode = () => S.mode === "pen" || S.mode === "highlighter" || S.mode === "eraser";
+function touch(rec) {
+  rec.updatedAt = Math.max(Date.now(), (rec.updatedAt || 0) + 1);
+  rec.dirty = 1;
+  return rec;
+}
+async function persist(store, recs) {
+  if (!recs.length) return;
+  S.pendingSaves++;
+  emit("save-state");
+  try {
+    await putMany(store, recs);
+    S.lastSaved = Date.now();
+    S.saveError = null;
+  } catch (e2) {
+    S.saveError = e2;
+    console.error("\xC9chec enregistrement", e2);
+    emit("save-error", e2);
+    throw e2;
+  } finally {
+    S.pendingSaves--;
+    emit("save-state");
+  }
+  emit("data-changed", { store, pageIds: [...new Set(recs.map((r2) => r2.pageId).filter(Boolean))] });
+}
+var SETTINGS_KEY = "calenstine.settings";
+function loadSettings() {
+  try {
+    Object.assign(S.settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"));
+  } catch {
+  }
+}
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(S.settings));
+  } catch {
+  }
+}
+
+// ../calenstine/js/util.js
+var $ = (s2, r2 = document) => r2.querySelector(s2);
+var $$ = (s2, r2 = document) => [...r2.querySelectorAll(s2)];
+function uid() {
+  const a2 = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const b2 = crypto.getRandomValues(new Uint8Array(15));
+  let s2 = "";
+  for (const x2 of b2) s2 += a2[x2 % 36];
+  return s2;
+}
+function debounce(fn, ms) {
+  let t2 = null, args = null;
+  const d2 = (...a2) => {
+    args = a2;
+    clearTimeout(t2);
+    t2 = setTimeout(() => {
+      t2 = null;
+      fn(...args);
+    }, ms);
+  };
+  d2.flush = () => {
+    if (t2) {
+      clearTimeout(t2);
+      t2 = null;
+      fn(...args);
+    }
+  };
+  d2.cancel = () => {
+    clearTimeout(t2);
+    t2 = null;
+  };
+  return d2;
+}
+function esc(s2) {
+  return String(s2 ?? "").replace(/[&<>"']/g, (c2) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c2]);
+}
+function norm(s2) {
+  return String(s2 || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim();
+}
+function blobToDataURL(blob) {
+  return new Promise((res, rej) => {
+    const r2 = new FileReader();
+    r2.onload = () => res(r2.result);
+    r2.onerror = () => rej(r2.error);
+    r2.readAsDataURL(blob);
+  });
+}
+async function dataURLToBlob(url) {
+  const r2 = await fetch(url);
+  return r2.blob();
+}
+function loadImage(src) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error("Image illisible"));
+    im.src = src;
+  });
+}
+var toastTimer = null;
+function toast(msg, ms = 2600) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), ms);
+}
+function fmtDateTime(ts) {
+  if (!ts) return "jamais";
+  const d2 = new Date(ts);
+  return d2.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) + " \xE0 " + d2.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+function fmtBytes(n2) {
+  if (!n2 && n2 !== 0) return "?";
+  if (n2 < 1024) return n2 + " o";
+  if (n2 < 1024 * 1024) return (n2 / 1024).toFixed(0) + " Ko";
+  if (n2 < 1024 ** 3) return (n2 / 1024 / 1024).toFixed(1) + " Mo";
+  return (n2 / 1024 ** 3).toFixed(2) + " Go";
+}
+var isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+var isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+// ../calenstine/js/dates.js
+var MONTHS = ["janvier", "f\xE9vrier", "mars", "avril", "mai", "juin", "juillet", "ao\xFBt", "septembre", "octobre", "novembre", "d\xE9cembre"];
+var MONTHS_SHORT = ["janv.", "f\xE9vr.", "mars", "avr.", "mai", "juin", "juil.", "ao\xFBt", "sept.", "oct.", "nov.", "d\xE9c."];
+var DAYS = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+var cap = (s2) => s2.charAt(0).toUpperCase() + s2.slice(1);
+var pad = (n2) => String(n2).padStart(2, "0");
+var dow = (d2) => (d2.getDay() + 6) % 7;
+var ymd = (d2) => `${d2.getFullYear()}-${pad(d2.getMonth() + 1)}-${pad(d2.getDate())}`;
+function parseYmd(s2) {
+  const [y2, m2, d2] = s2.split("-").map(Number);
+  return new Date(y2, m2 - 1, d2);
+}
+var addDays = (d2, n2) => new Date(d2.getFullYear(), d2.getMonth(), d2.getDate() + n2);
+var startOfWeek = (d2) => addDays(d2, -dow(d2));
+var sameDay = (a2, b2) => a2.getFullYear() === b2.getFullYear() && a2.getMonth() === b2.getMonth() && a2.getDate() === b2.getDate();
+var today = () => {
+  const n2 = /* @__PURE__ */ new Date();
+  return new Date(n2.getFullYear(), n2.getMonth(), n2.getDate());
+};
+function isoWeek(d2) {
+  const t2 = new Date(Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate()));
+  const dayNum = t2.getUTCDay() || 7;
+  t2.setUTCDate(t2.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(t2.getUTCFullYear(), 0, 1));
+  return { year: t2.getUTCFullYear(), week: Math.ceil(((t2 - yearStart) / 864e5 + 1) / 7) };
+}
+function isoWeekStart(year, week) {
+  return addDays(startOfWeek(new Date(year, 0, 4)), (week - 1) * 7);
+}
+function monthWeeks(y2, m2) {
+  const first = new Date(y2, m2, 1);
+  const days = new Date(y2, m2 + 1, 0).getDate();
+  const rows = Math.ceil((dow(first) + days) / 7);
+  const start2 = startOfWeek(first);
+  const out = [];
+  for (let r2 = 0; r2 < rows; r2++) {
+    const wk = [];
+    for (let c2 = 0; c2 < 7; c2++) wk.push(addDays(start2, r2 * 7 + c2));
+    out.push(wk);
+  }
+  return out;
+}
+function pageIdFor(view, d2) {
+  if (view === "day") return "d:" + ymd(d2);
+  if (view === "week") {
+    const { year, week } = isoWeek(d2);
+    return `w:${year}-W${pad(week)}`;
+  }
+  if (view === "month") return `m:${d2.getFullYear()}-${pad(d2.getMonth() + 1)}`;
+  return "y:" + d2.getFullYear();
+}
+function parsePageId(pid) {
+  const [k2, v2] = pid.split(":");
+  if (k2 === "d") return { view: "day", date: parseYmd(v2) };
+  if (k2 === "w") {
+    const [y2, w2] = v2.split("-W").map(Number);
+    return { view: "week", date: isoWeekStart(y2, w2) };
+  }
+  if (k2 === "m") {
+    const [y2, m2] = v2.split("-").map(Number);
+    return { view: "month", date: new Date(y2, m2 - 1, 1) };
+  }
+  return { view: "year", date: new Date(Number(v2), 0, 1) };
+}
+function weekRangeLabel(mon) {
+  const sun = addDays(mon, 6);
+  if (mon.getMonth() === sun.getMonth()) return `${mon.getDate()} \u2013 ${sun.getDate()} ${MONTHS[sun.getMonth()]} ${sun.getFullYear()}`;
+  if (mon.getFullYear() === sun.getFullYear()) return `${mon.getDate()} ${MONTHS_SHORT[mon.getMonth()]} \u2013 ${sun.getDate()} ${MONTHS_SHORT[sun.getMonth()]} ${sun.getFullYear()}`;
+  return `${mon.getDate()} ${MONTHS_SHORT[mon.getMonth()]} ${mon.getFullYear()} \u2013 ${sun.getDate()} ${MONTHS_SHORT[sun.getMonth()]} ${sun.getFullYear()}`;
+}
+function pageLabel(pid) {
+  const { view, date } = parsePageId(pid);
+  if (view === "day") return `${cap(DAYS[dow(date)])} ${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+  if (view === "week") return `Semaine ${isoWeek(date).week} \xB7 ${weekRangeLabel(date)}`;
+  if (view === "month") return `${cap(MONTHS[date.getMonth()])} ${date.getFullYear()}`;
+  return `Ann\xE9e ${date.getFullYear()}`;
+}
+
+// ../calenstine/js/views.js
+var W = 1400;
+var H = 990;
+var FONT = `font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', Roboto, sans-serif"`;
+var INK = "#2f2b3a";
+var MUTED = "#9a95a8";
+var LINE = "#3a3646";
+var LIGHT = "#e7e3ee";
+var ACCENT = "#8b7fd6";
+var DAY_COLORS = ["#cdebd6", "#fcebbd", "#fcd9bb", "#f8d2e3", "#ddd5f7", "#cfe5f7", "#cdeee9"];
+var M = 24;
+var TOP = 84;
+function txt(x2, y2, str, { size = 20, weight = 400, fill = INK, anchor = "start" } = {}) {
+  return `<text x="${x2.toFixed(1)}" y="${y2.toFixed(1)}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" ${FONT}>${esc(str)}</text>`;
+}
+var rect = (x2, y2, w2, h2, a2 = "") => `<rect x="${x2.toFixed(1)}" y="${y2.toFixed(1)}" width="${w2.toFixed(1)}" height="${h2.toFixed(1)}" ${a2}/>`;
+var line = (x1, y1, x2, y2, a2 = "") => `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" ${a2}/>`;
+var nav = (x2, y2, w2, h2, goto2) => `<rect class="nav" data-goto="${goto2}" x="${x2.toFixed(1)}" y="${y2.toFixed(1)}" width="${w2.toFixed(1)}" height="${h2.toFixed(1)}" fill="transparent"/>`;
+var title = (main, sub) => `<text x="${M + 4}" y="58" font-size="40" font-weight="700" fill="${INK}" ${FONT}>${esc(main)}${sub ? ` <tspan font-weight="400" fill="${MUTED}">${esc(sub)}</tspan>` : ""}</text>`;
+var frame = (x2, y2, w2, h2) => rect(x2, y2, w2, h2, `fill="none" stroke="${LINE}" stroke-width="2.2" rx="10"`);
+var clip = (id, x2, y2, w2, h2) => `<clipPath id="${id}">${rect(x2, y2, w2, h2, 'rx="10"')}</clipPath>`;
+function monthView(date) {
+  const t0 = today();
+  const y2 = date.getFullYear(), m2 = date.getMonth();
+  const weeks = monthWeeks(y2, m2);
+  const rows = weeks.length;
+  const gx = M, gw = W - 2 * M, colW = gw / 7, headH = 38, gy = TOP + headH, gh = H - M - gy, rowH = gh / rows;
+  let s2 = rect(0, 0, W, H, 'fill="#fff"');
+  s2 += title(cap(MONTHS[m2]), String(y2));
+  s2 += `<defs>${clip("gclip", gx, TOP, gw, H - M - TOP)}</defs><g clip-path="url(#gclip)">`;
+  for (let i2 = 0; i2 < 7; i2++) {
+    s2 += rect(gx + i2 * colW, TOP, colW, headH, `fill="${DAY_COLORS[i2]}"`);
+  }
+  weeks.forEach((wk, ri) => wk.forEach((d2, ci) => {
+    const inM = d2.getMonth() === m2;
+    s2 += rect(gx + ci * colW, gy + ri * rowH, colW, rowH, inM ? `fill="${DAY_COLORS[ci]}" fill-opacity="0.26"` : 'fill="#f3f1f6"');
+  }));
+  s2 += "</g>";
+  for (let i2 = 0; i2 < 7; i2++) s2 += txt(gx + i2 * colW + colW / 2, TOP + 26, cap(DAYS[i2]), { size: 19, weight: 600, anchor: "middle", fill: "#4a4558" });
+  for (let c2 = 1; c2 < 7; c2++) s2 += line(gx + c2 * colW, TOP, gx + c2 * colW, H - M, `stroke="${LINE}" stroke-width="1.4"`);
+  for (let r2 = 0; r2 < rows; r2++) s2 += line(gx, gy + r2 * rowH, gx + gw, gy + r2 * rowH, `stroke="${LINE}" stroke-width="1.4"`);
+  weeks.forEach((wk, ri) => wk.forEach((d2, ci) => {
+    const x2 = gx + ci * colW, yy = gy + ri * rowH;
+    const inM = d2.getMonth() === m2, isT = sameDay(d2, t0);
+    if (isT) s2 += `<circle cx="${(x2 + 24).toFixed(1)}" cy="${(yy + 23).toFixed(1)}" r="16" fill="${ACCENT}"/>`;
+    s2 += txt(x2 + 24, yy + 30, String(d2.getDate()), { size: 19, weight: isT ? 700 : 500, anchor: "middle", fill: isT ? "#fff" : inM ? INK : "#bbb6c7" });
+    s2 += nav(x2 + 2, yy + 2, 50, 46, "d:" + ymd(d2));
+  }));
+  s2 += frame(gx, TOP, gw, H - M - TOP);
+  return { markup: s2, title: `${cap(MONTHS[m2])} ${y2}` };
+}
+function weekView(date) {
+  const t0 = today();
+  const mon = startOfWeek(date);
+  const { week } = isoWeek(mon);
+  const gx = M, gw = W - 2 * M, colW = gw / 4, gh = H - M - TOP, rowH = gh / 2, band = 40;
+  let s2 = rect(0, 0, W, H, 'fill="#fff"');
+  s2 += title(`Semaine ${week}`, weekRangeLabel(mon));
+  s2 += `<defs>${clip("gclip", gx, TOP, gw, gh)}</defs><g clip-path="url(#gclip)">`;
+  for (let i2 = 0; i2 < 8; i2++) {
+    const x2 = gx + i2 % 4 * colW, y2 = TOP + Math.floor(i2 / 4) * rowH;
+    s2 += rect(x2, y2, colW, band, `fill="${i2 < 7 ? DAY_COLORS[i2] : "#ece9f2"}"`);
+    for (let ly = y2 + band + 40; ly < y2 + rowH - 10; ly += 40) s2 += line(x2 + 12, ly, x2 + colW - 12, ly, `stroke="${LIGHT}" stroke-width="1.2"`);
+  }
+  s2 += "</g>";
+  for (let i2 = 0; i2 < 8; i2++) {
+    const x2 = gx + i2 % 4 * colW, y2 = TOP + Math.floor(i2 / 4) * rowH;
+    if (i2 < 7) {
+      const d2 = addDays(mon, i2), isT = sameDay(d2, t0);
+      const label = `${cap(DAYS[i2])} ${d2.getDate()}${d2.getDate() === 1 || i2 === 0 ? " " + MONTHS[d2.getMonth()] : ""}`;
+      if (isT) s2 += rect(x2 + 6, y2 + 6, 12, 28, `fill="${ACCENT}" rx="4"`);
+      s2 += txt(x2 + 26, y2 + 27, label, { size: 19, weight: isT ? 700 : 600, fill: isT ? ACCENT : "#4a4558" });
+      s2 += nav(x2, y2, colW, band, "d:" + ymd(d2));
+    } else {
+      s2 += txt(x2 + 26, y2 + 27, "Notes", { size: 19, weight: 600, fill: "#4a4558" });
+    }
+    s2 += line(x2, y2 + band, x2 + colW, y2 + band, `stroke="${LINE}" stroke-width="1.2"`);
+  }
+  for (let c2 = 1; c2 < 4; c2++) s2 += line(gx + c2 * colW, TOP, gx + c2 * colW, H - M, `stroke="${LINE}" stroke-width="1.4"`);
+  s2 += line(gx, TOP + rowH, gx + gw, TOP + rowH, `stroke="${LINE}" stroke-width="1.4"`);
+  s2 += frame(gx, TOP, gw, gh);
+  return { markup: s2, title: `Semaine ${week} \xB7 ${weekRangeLabel(mon)}` };
+}
+function dayView(date) {
+  const d2 = date, di = dow(d2);
+  const leftW = 820, gh = H - M - TOP, band = 40;
+  let s2 = rect(0, 0, W, H, 'fill="#fff"');
+  const isT = sameDay(d2, today());
+  s2 += title(`${cap(DAYS[di])} ${d2.getDate()} ${MONTHS[d2.getMonth()]}`, String(d2.getFullYear()) + (isT ? " \xB7 aujourd\u2019hui" : ""));
+  const hours = 17, rowH = gh / hours, x0 = M;
+  s2 += `<defs>${clip("gclip", x0, TOP, leftW, gh)}</defs><g clip-path="url(#gclip)">`;
+  s2 += rect(x0, TOP, 58, gh, `fill="${DAY_COLORS[di]}" fill-opacity="0.45"`);
+  s2 += "</g>";
+  for (let h2 = 0; h2 < hours; h2++) {
+    const y2 = TOP + h2 * rowH;
+    if (h2 > 0) s2 += line(x0, y2, x0 + leftW, y2, `stroke="#d8d3e2" stroke-width="1.2"`);
+    s2 += line(x0 + 58, y2 + rowH / 2, x0 + leftW - 10, y2 + rowH / 2, `stroke="${LIGHT}" stroke-width="1" stroke-dasharray="4 6"`);
+    s2 += txt(x0 + 29, y2 + 22, `${7 + h2}h`, { size: 16, weight: 600, anchor: "middle", fill: "#6d6880" });
+  }
+  s2 += line(x0 + 58, TOP, x0 + 58, H - M, `stroke="${LINE}" stroke-width="1.2"`);
+  s2 += frame(x0, TOP, leftW, gh);
+  const rx = M + leftW + 20, rw = W - M - rx, todoH = 430;
+  s2 += `<defs>${clip("rclip1", rx, TOP, rw, todoH)}${clip("rclip2", rx, TOP + todoH + 20, rw, gh - todoH - 20)}</defs>`;
+  s2 += `<g clip-path="url(#rclip1)">${rect(rx, TOP, rw, band, `fill="${DAY_COLORS[di]}"`)}</g>`;
+  s2 += txt(rx + 18, TOP + 27, "\xC0 faire", { size: 19, weight: 600, fill: "#4a4558" });
+  s2 += line(rx, TOP + band, rx + rw, TOP + band, `stroke="${LINE}" stroke-width="1.2"`);
+  for (let i2 = 0; i2 < 9; i2++) {
+    const y2 = TOP + band + 14 + i2 * 41;
+    s2 += rect(rx + 16, y2 + 8, 18, 18, `fill="none" stroke="#b7b1c6" stroke-width="1.6" rx="4"`);
+    s2 += line(rx + 46, y2 + 32, rx + rw - 14, y2 + 32, `stroke="${LIGHT}" stroke-width="1.2"`);
+  }
+  s2 += frame(rx, TOP, rw, todoH);
+  const ny = TOP + todoH + 20, nh = gh - todoH - 20;
+  s2 += `<g clip-path="url(#rclip2)">${rect(rx, ny, rw, band, 'fill="#ece9f2"')}</g>`;
+  s2 += txt(rx + 18, ny + 27, "Notes", { size: 19, weight: 600, fill: "#4a4558" });
+  s2 += line(rx, ny + band, rx + rw, ny + band, `stroke="${LINE}" stroke-width="1.2"`);
+  for (let ly = ny + band + 40; ly < ny + nh - 8; ly += 40) s2 += line(rx + 14, ly, rx + rw - 14, ly, `stroke="${LIGHT}" stroke-width="1.2"`);
+  s2 += frame(rx, ny, rw, nh);
+  return { markup: s2, title: `${cap(DAYS[di])} ${d2.getDate()} ${MONTHS[d2.getMonth()]} ${d2.getFullYear()}` };
+}
+function yearView(date) {
+  const t0 = today();
+  const y2 = date.getFullYear();
+  const gx = M, gw = W - 2 * M, cw = gw / 4, gh = H - M - TOP, ch = gh / 3;
+  let s2 = rect(0, 0, W, H, 'fill="#fff"');
+  s2 += title(String(y2), "");
+  for (let m2 = 0; m2 < 12; m2++) {
+    const x2 = gx + m2 % 4 * cw, yy = TOP + Math.floor(m2 / 4) * ch;
+    s2 += txt(x2 + 16, yy + 32, cap(MONTHS[m2]), { size: 21, weight: 700, fill: INK });
+    s2 += nav(x2 + 6, yy + 6, 180, 36, `m:${y2}-${pad(m2 + 1)}`);
+    const dw = (cw - 32) / 7, dh = (ch - 78) / 6;
+    "LMMJVSD".split("").forEach((l2, i2) => {
+      s2 += txt(x2 + 16 + i2 * dw + dw / 2, yy + 60, l2, { size: 13, weight: 600, anchor: "middle", fill: MUTED });
+    });
+    monthWeeks(y2, m2).forEach((wk, ri) => wk.forEach((d2, ci) => {
+      if (d2.getMonth() !== m2) return;
+      const cx = x2 + 16 + ci * dw + dw / 2, cy = yy + 70 + ri * dh + dh / 2;
+      const isT = sameDay(d2, t0);
+      if (ci >= 5) s2 += rect(cx - dw / 2 + 2, cy - dh / 2 + 2, dw - 4, dh - 4, `fill="${DAY_COLORS[ci]}" fill-opacity="0.45" rx="6"`);
+      if (isT) s2 += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="13" fill="${ACCENT}"/>`;
+      s2 += txt(cx, cy + 5, String(d2.getDate()), { size: 14, weight: isT ? 700 : 500, anchor: "middle", fill: isT ? "#fff" : INK });
+      s2 += nav(cx - dw / 2, cy - dh / 2, dw, dh, "d:" + ymd(d2));
+    }));
+  }
+  for (let c2 = 1; c2 < 4; c2++) s2 += line(gx + c2 * cw, TOP + 8, gx + c2 * cw, H - M - 8, `stroke="${LIGHT}" stroke-width="1.4"`);
+  for (let r2 = 1; r2 < 3; r2++) s2 += line(gx + 8, TOP + r2 * ch, gx + gw - 8, TOP + r2 * ch, `stroke="${LIGHT}" stroke-width="1.4"`);
+  s2 += frame(gx, TOP, gw, gh);
+  return { markup: s2, title: `Ann\xE9e ${y2}` };
+}
+function renderGrid(view, date) {
+  if (view === "day") return dayView(date);
+  if (view === "week") return weekView(date);
+  if (view === "year") return yearView(date);
+  return monthView(date);
+}
+var svgDocument = (markup) => `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${markup}</svg>`;
+
+// ../calenstine/js/vendor/perfect-freehand.mjs
+/*! perfect-freehand v1.2.3 — MIT License — (c) Steve Ruiz — https://github.com/steveruizok/perfect-freehand */
+var { PI: e } = Math;
+var t = e + 1e-4;
+var n = 0.5;
+var r = [1, 1];
+function i(e2, t2, n2, r2 = (e3) => e3) {
+  return e2 * r2(0.5 - t2 * (0.5 - n2));
+}
+var { min: a } = Math;
+function o(e2, t2, n2) {
+  let r2 = a(1, t2 / n2);
+  return a(1, e2 + (a(1, 1 - r2) - e2) * (r2 * 0.275));
+}
+function s(e2) {
+  return [-e2[0], -e2[1]];
+}
+function c(e2, t2) {
+  return [e2[0] + t2[0], e2[1] + t2[1]];
+}
+function l(e2, t2, n2) {
+  return e2[0] = t2[0] + n2[0], e2[1] = t2[1] + n2[1], e2;
+}
+function u(e2, t2) {
+  return [e2[0] - t2[0], e2[1] - t2[1]];
+}
+function d(e2, t2, n2) {
+  return e2[0] = t2[0] - n2[0], e2[1] = t2[1] - n2[1], e2;
+}
+function f(e2, t2) {
+  return [e2[0] * t2, e2[1] * t2];
+}
+function p(e2, t2, n2) {
+  return e2[0] = t2[0] * n2, e2[1] = t2[1] * n2, e2;
+}
+function m(e2, t2) {
+  return [e2[0] / t2, e2[1] / t2];
+}
+function h(e2) {
+  return [e2[1], -e2[0]];
+}
+function g(e2, t2) {
+  let n2 = t2[0];
+  return e2[0] = t2[1], e2[1] = -n2, e2;
+}
+function ee(e2, t2) {
+  return e2[0] * t2[0] + e2[1] * t2[1];
+}
+function _(e2, t2) {
+  return e2[0] === t2[0] && e2[1] === t2[1];
+}
+function v(e2) {
+  return Math.hypot(e2[0], e2[1]);
+}
+function y(e2, t2) {
+  let n2 = e2[0] - t2[0], r2 = e2[1] - t2[1];
+  return n2 * n2 + r2 * r2;
+}
+function b(e2) {
+  return m(e2, v(e2));
+}
+function x(e2, t2) {
+  return Math.hypot(e2[1] - t2[1], e2[0] - t2[0]);
+}
+function S2(e2, t2, n2) {
+  let r2 = Math.sin(n2), i2 = Math.cos(n2), a2 = e2[0] - t2[0], o2 = e2[1] - t2[1], s2 = a2 * i2 - o2 * r2, c2 = a2 * r2 + o2 * i2;
+  return [s2 + t2[0], c2 + t2[1]];
+}
+function C(e2, t2, n2, r2) {
+  let i2 = Math.sin(r2), a2 = Math.cos(r2), o2 = t2[0] - n2[0], s2 = t2[1] - n2[1], c2 = o2 * a2 - s2 * i2, l2 = o2 * i2 + s2 * a2;
+  return e2[0] = c2 + n2[0], e2[1] = l2 + n2[1], e2;
+}
+function w(e2, t2, n2) {
+  return c(e2, f(u(t2, e2), n2));
+}
+function te(e2, t2, n2, r2) {
+  let i2 = n2[0] - t2[0], a2 = n2[1] - t2[1];
+  return e2[0] = t2[0] + i2 * r2, e2[1] = t2[1] + a2 * r2, e2;
+}
+function T(e2, t2, n2) {
+  return c(e2, f(t2, n2));
+}
+var E = [0, 0];
+var D = [0, 0];
+var O = [0, 0];
+function k(e2, n2) {
+  let r2 = T(e2, b(h(u(e2, c(e2, [1, 1])))), -n2), i2 = [], a2 = 1 / 13;
+  for (let n3 = a2; n3 <= 1; n3 += a2) i2.push(S2(r2, e2, t * 2 * n3));
+  return i2;
+}
+function A(e2, n2, r2) {
+  let i2 = [], a2 = 1 / r2;
+  for (let r3 = a2; r3 <= 1; r3 += a2) i2.push(S2(n2, e2, t * r3));
+  return i2;
+}
+function j(e2, t2, n2) {
+  let r2 = u(t2, n2), i2 = f(r2, 0.5), a2 = f(r2, 0.51);
+  return [u(e2, i2), u(e2, a2), c(e2, a2), c(e2, i2)];
+}
+function M2(e2, n2, r2, i2) {
+  let a2 = [], o2 = T(e2, n2, r2), s2 = 1 / i2;
+  for (let n3 = s2; n3 < 1; n3 += s2) a2.push(S2(o2, e2, t * 3 * n3));
+  return a2;
+}
+function ne(e2, t2, n2) {
+  return [c(e2, f(t2, n2)), c(e2, f(t2, n2 * 0.99)), u(e2, f(t2, n2 * 0.99)), u(e2, f(t2, n2))];
+}
+function N(e2, t2, n2) {
+  return e2 === false || e2 === void 0 ? 0 : e2 === true ? Math.max(t2, n2) : e2;
+}
+function re(e2, t2, n2) {
+  return e2.slice(0, 10).reduce((e3, r2) => {
+    let i2 = r2.pressure;
+    return t2 && (i2 = o(e3, r2.distance, n2)), (e3 + i2) / 2;
+  }, e2[0].pressure);
+}
+function P(e2, n2 = {}) {
+  let { size: r2 = 16, smoothing: a2 = 0.5, thinning: f2 = 0.5, simulatePressure: m2 = true, easing: _2 = (e3) => e3, start: v2 = {}, end: b2 = {}, last: x2 = false } = n2, { cap: S3 = true, easing: w2 = (e3) => e3 * (2 - e3) } = v2, { cap: T2 = true, easing: P2 = (e3) => --e3 * e3 * e3 + 1 } = b2;
+  if (e2.length === 0 || r2 <= 0) return [];
+  let F2 = e2[e2.length - 1].runningLength, I2 = N(v2.taper, r2, F2), L2 = N(b2.taper, r2, F2), R2 = (r2 * a2) ** 2, z = [], B = [], V = re(e2, m2, r2), H2 = i(r2, f2, e2[e2.length - 1].pressure, _2), U, W2 = e2[0].vector, G = e2[0].point, K = G, q = G, J = K, Y = false;
+  for (let n3 = 0; n3 < e2.length; n3++) {
+    let { pressure: a3 } = e2[n3], { point: s2, vector: h2, distance: v3, runningLength: b3 } = e2[n3], x3 = n3 === e2.length - 1;
+    if (!x3 && F2 - b3 < 3) continue;
+    f2 ? (m2 && (a3 = o(V, v3, r2)), H2 = i(r2, f2, a3, _2)) : H2 = r2 / 2, U === void 0 && (U = H2);
+    let S4 = b3 < I2 ? w2(b3 / I2) : 1, T3 = F2 - b3 < L2 ? P2((F2 - b3) / L2) : 1;
+    H2 = Math.max(0.01, H2 * Math.min(S4, T3));
+    let k2 = (x3 ? e2[n3] : e2[n3 + 1]).vector, A2 = x3 ? 1 : ee(h2, k2), j2 = ee(h2, W2) < 0 && !Y, M3 = A2 !== null && A2 < 0;
+    if (j2 || M3) {
+      g(E, W2), p(E, E, H2);
+      for (let e3 = 0; e3 <= 1; e3 += 0.07692307692307693) d(D, s2, E), C(D, D, s2, t * e3), q = [D[0], D[1]], z.push(q), l(O, s2, E), C(O, O, s2, t * -e3), J = [O[0], O[1]], B.push(J);
+      G = q, K = J, M3 && (Y = true);
+      continue;
+    }
+    if (Y = false, x3) {
+      g(E, h2), p(E, E, H2), z.push(u(s2, E)), B.push(c(s2, E));
+      continue;
+    }
+    te(E, k2, h2, A2), g(E, E), p(E, E, H2), d(D, s2, E), q = [D[0], D[1]], (n3 <= 1 || y(G, q) > R2) && (z.push(q), G = q), l(O, s2, E), J = [O[0], O[1]], (n3 <= 1 || y(K, J) > R2) && (B.push(J), K = J), V = a3, W2 = h2;
+  }
+  let X = [e2[0].point[0], e2[0].point[1]], Z = e2.length > 1 ? [e2[e2.length - 1].point[0], e2[e2.length - 1].point[1]] : c(e2[0].point, [1, 1]), Q = [], $2 = [];
+  if (e2.length === 1) {
+    if (!(I2 || L2) || x2) return k(X, U || H2);
+  } else {
+    I2 || L2 && e2.length === 1 || (S3 ? Q.push(...A(X, B[0], 13)) : Q.push(...j(X, z[0], B[0])));
+    let t2 = h(s(e2[e2.length - 1].vector));
+    L2 || I2 && e2.length === 1 ? $2.push(Z) : T2 ? $2.push(...M2(Z, t2, H2, 29)) : $2.push(...ne(Z, t2, H2));
+  }
+  return z.concat($2, B.reverse(), Q);
+}
+var F = [0, 0];
+function I(e2) {
+  return e2 != null && e2 >= 0;
+}
+function L(e2, t2 = {}) {
+  let { streamline: i2 = 0.5, size: a2 = 16, last: o2 = false } = t2;
+  if (e2.length === 0) return [];
+  let s2 = 0.15 + (1 - i2) * 0.85, l2 = Array.isArray(e2[0]) ? e2 : e2.map(({ x: e3, y: t3, pressure: r2 = n }) => [e3, t3, r2]);
+  if (l2.length === 2) {
+    let e3 = l2[1];
+    l2 = l2.slice(0, -1);
+    for (let t3 = 1; t3 < 5; t3++) l2.push(w(l2[0], e3, t3 / 4));
+  }
+  l2.length === 1 && (l2 = [...l2, [...c(l2[0], r), ...l2[0].slice(2)]]);
+  let u2 = [{ point: [l2[0][0], l2[0][1]], pressure: I(l2[0][2]) ? l2[0][2] : 0.25, vector: [...r], distance: 0, runningLength: 0 }], f2 = false, p2 = 0, m2 = u2[0], h2 = l2.length - 1;
+  for (let e3 = 1; e3 < l2.length; e3++) {
+    let t3 = o2 && e3 === h2 ? [l2[e3][0], l2[e3][1]] : w(m2.point, l2[e3], s2);
+    if (_(m2.point, t3)) continue;
+    let r2 = x(t3, m2.point);
+    if (p2 += r2, e3 < h2 && !f2) {
+      if (p2 < a2) continue;
+      f2 = true;
+    }
+    d(F, m2.point, t3), m2 = { point: t3, pressure: I(l2[e3][2]) ? l2[e3][2] : n, vector: b(F), distance: r2, runningLength: p2 }, u2.push(m2);
+  }
+  return u2[0].vector = u2[1]?.vector || [0, 0], u2;
+}
+function R(e2, t2 = {}) {
+  return P(L(e2, t2), t2);
+}
+
+// ../calenstine/js/ink.js
+var SIZES = {
+  pen: [2.6, 4.6, 8],
+  highlighter: [16, 26, 40],
+  eraser: [8, 18, 34]
+};
+function strokeOptions(tool, size, simulate) {
+  if (tool === "highlighter") {
+    return { size, thinning: 0, smoothing: 0.6, streamline: 0.55, simulatePressure: false, last: true };
+  }
+  return { size, thinning: 0.55, smoothing: 0.55, streamline: 0.42, simulatePressure: simulate, last: true };
+}
+function polyToPath(pts) {
+  const p2 = new Path2D();
+  if (!pts.length) return p2;
+  p2.moveTo(pts[0][0], pts[0][1]);
+  for (let i2 = 1; i2 < pts.length; i2++) {
+    const [x0, y0] = pts[i2 - 1], [x1, y1] = pts[i2];
+    p2.quadraticCurveTo(x0, y0, (x0 + x1) / 2, (y0 + y1) / 2);
+  }
+  p2.closePath();
+  return p2;
+}
+function buildPath(st) {
+  return polyToPath(R(st.points, strokeOptions(st.tool, st.size, !!st.sp)));
+}
+var cache = /* @__PURE__ */ new Map();
+function pathOf(st) {
+  let p2 = cache.get(st.id);
+  if (!p2) {
+    p2 = buildPath(st);
+    cache.set(st.id, p2);
+  }
+  return p2;
+}
+function computeBB(points, size) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x2, y2] of points) {
+    if (x2 < x0) x0 = x2;
+    if (y2 < y0) y0 = y2;
+    if (x2 > x1) x1 = x2;
+    if (y2 > y1) y1 = y2;
+  }
+  const h2 = size / 2;
+  return [x0 - h2, y0 - h2, x1 + h2, y1 + h2];
+}
+function distSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const l2 = dx * dx + dy * dy;
+  let t2 = l2 ? ((px - ax) * dx + (py - ay) * dy) / l2 : 0;
+  t2 = Math.max(0, Math.min(1, t2));
+  const qx = ax + t2 * dx - px, qy = ay + t2 * dy - py;
+  return Math.sqrt(qx * qx + qy * qy);
+}
+function hitStroke(st, x2, y2, r2) {
+  const bb = st.bb || (st.bb = computeBB(st.points, st.size));
+  if (x2 < bb[0] - r2 || x2 > bb[2] + r2 || y2 < bb[1] - r2 || y2 > bb[3] + r2) return false;
+  const lim = r2 + st.size / 2;
+  const p2 = st.points;
+  if (p2.length === 1) return Math.hypot(p2[0][0] - x2, p2[0][1] - y2) <= lim;
+  for (let i2 = 1; i2 < p2.length; i2++) if (distSeg(x2, y2, p2[i2 - 1][0], p2[i2 - 1][1], p2[i2][0], p2[i2][1]) <= lim) return true;
+  return false;
+}
+var cvHl;
+var cvInk;
+var cvLive;
+var ctxHl;
+var ctxInk;
+var ctxLive;
+function initCanvases(hl, ink, live) {
+  cvHl = hl;
+  cvInk = ink;
+  cvLive = live;
+  ctxHl = hl.getContext("2d");
+  ctxInk = ink.getContext("2d");
+  ctxLive = live.getContext("2d");
+}
+function resizeCanvases() {
+  const w2 = Math.round(S.stageW * S.dpr), h2 = Math.round(S.stageH * S.dpr);
+  for (const c2 of [cvHl, cvInk, cvLive]) {
+    if (c2.width !== w2 || c2.height !== h2) {
+      c2.width = w2;
+      c2.height = h2;
+    }
+    c2.style.width = S.stageW + "px";
+    c2.style.height = S.stageH + "px";
+  }
+}
+var setT = (ctx) => ctx.setTransform(S.dpr * S.s, 0, 0, S.dpr * S.s, S.dpr * S.ox, S.dpr * S.oy);
+function clear(ctx) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+}
+function redrawAll() {
+  clear(ctxHl);
+  clear(ctxInk);
+  setT(ctxHl);
+  setT(ctxInk);
+  for (const st of S.strokes) {
+    if (st.deleted) continue;
+    const ctx = st.tool === "highlighter" ? ctxHl : ctxInk;
+    ctx.fillStyle = st.color;
+    ctx.fill(pathOf(st));
+  }
+}
+function drawOne(st) {
+  const ctx = st.tool === "highlighter" ? ctxHl : ctxInk;
+  setT(ctx);
+  ctx.fillStyle = st.color;
+  ctx.fill(pathOf(st));
+}
+function drawLive(d2) {
+  clear(ctxLive);
+  cvLive.classList.toggle("hl", d2.tool === "highlighter");
+  setT(ctxLive);
+  ctxLive.fillStyle = d2.color;
+  ctxLive.fill(polyToPath(R(d2.points, { ...strokeOptions(d2.tool, d2.size, d2.sp), last: false })));
+}
+function drawEraserCursor(x2, y2, r2) {
+  clear(ctxLive);
+  cvLive.classList.remove("hl");
+  setT(ctxLive);
+  ctxLive.beginPath();
+  ctxLive.arc(x2, y2, r2, 0, Math.PI * 2);
+  ctxLive.lineWidth = 1.5 / S.s;
+  ctxLive.strokeStyle = "#8b7fd6";
+  ctxLive.fillStyle = "rgba(139,127,214,0.12)";
+  ctxLive.fill();
+  ctxLive.stroke();
+}
+var clearLive = () => clear(ctxLive);
+var flashTimer = null;
+function flashRect(bb) {
+  clearTimeout(flashTimer);
+  clear(ctxLive);
+  cvLive.classList.remove("hl");
+  setT(ctxLive);
+  const p2 = 10;
+  ctxLive.lineWidth = 4 / S.s;
+  ctxLive.strokeStyle = "#8b7fd6";
+  ctxLive.fillStyle = "rgba(139,127,214,0.15)";
+  ctxLive.beginPath();
+  ctxLive.roundRect ? ctxLive.roundRect(bb[0] - p2, bb[1] - p2, bb[2] - bb[0] + 2 * p2, bb[3] - bb[1] + 2 * p2, 10) : ctxLive.rect(bb[0] - p2, bb[1] - p2, bb[2] - bb[0] + 2 * p2, bb[3] - bb[1] + 2 * p2);
+  ctxLive.fill();
+  ctxLive.stroke();
+  flashTimer = setTimeout(() => clear(ctxLive), 2600);
+}
+function paintStrokes(ctx, strokes, tool) {
+  for (const st of strokes) {
+    if (st.deleted || st.tool !== tool) continue;
+    ctx.fillStyle = st.color;
+    ctx.fill(pathOf(st));
+  }
+}
+
+// ../calenstine/js/objects.js
+var objects_exports = {};
+__export(objects_exports, {
+  FONT_SIZES: () => FONT_SIZES,
+  addImage: () => addImage,
+  assetURL: () => assetURL,
+  bringFront: () => bringFront,
+  bumpFont: () => bumpFont,
+  createText: () => createText,
+  deleteSelected: () => deleteSelected,
+  flushPendingText: () => flushPendingText,
+  forgetAsset: () => forgetAsset,
+  getSelected: () => getSelected,
+  initObjects: () => initObjects,
+  placeAsset: () => placeAsset,
+  refreshEditable: () => refreshEditable,
+  renderObjects: () => renderObjects,
+  select: () => select,
+  selectedToSticker: () => selectedToSticker
+});
+var layer = null;
+var hooks = {};
+var urlCache = /* @__PURE__ */ new Map();
+var FONT_SIZES = [18, 24, 34];
+function initObjects(el, h2) {
+  layer = el;
+  hooks = h2;
+}
+async function assetURL(id) {
+  if (urlCache.has(id)) return urlCache.get(id);
+  const a2 = await get("assets", id);
+  if (!a2 || !a2.blob) return null;
+  const u2 = URL.createObjectURL(a2.blob);
+  urlCache.set(id, u2);
+  return u2;
+}
+function forgetAsset(id) {
+  const u2 = urlCache.get(id);
+  if (u2) {
+    URL.revokeObjectURL(u2);
+    urlCache.delete(id);
+  }
+}
+var nextZ = () => S.objects.reduce((m2, o2) => Math.max(m2, o2.z || 0), 0) + 1;
+var elOf = (id) => layer.querySelector(`.obj[data-id="${id}"]`);
+var getSelected = () => S.objects.find((o2) => o2.id === S.selectedId && !o2.deleted) || null;
+function place(el, o2) {
+  el.style.left = o2.x + "px";
+  el.style.top = o2.y + "px";
+  el.style.width = o2.w + "px";
+  if (o2.type !== "text") el.style.height = o2.h + "px";
+}
+function setEditable(el) {
+  const want = S.mode === "text";
+  if (!want) {
+    el.contentEditable = "false";
+    return;
+  }
+  try {
+    el.contentEditable = "plaintext-only";
+  } catch {
+  }
+  if (el.contentEditable !== "plaintext-only") el.contentEditable = "true";
+}
+function refreshEditable() {
+  if (!layer) return;
+  layer.querySelectorAll(".obj-text").forEach(setEditable);
+  if (S.mode !== "text" && document.activeElement?.classList?.contains("obj-text")) document.activeElement.blur();
+}
+var pendingText = /* @__PURE__ */ new Map();
+var flushText = debounce(() => {
+  const recs = [...pendingText.values()];
+  pendingText.clear();
+  if (!recs.length) return;
+  recs.forEach(touch);
+  persist("objects", recs).catch(() => {
+  });
+}, 500);
+var flushPendingText = () => flushText.flush();
+function saveText(o2) {
+  if (o2._new) {
+    if (!o2.text.trim()) return;
+    delete o2._new;
+    hooks.pushUndo({ store: "objects", kind: "add", ids: [o2.id] });
+  }
+  pendingText.set(o2.id, o2);
+  flushText();
+}
+function buildEl(o2) {
+  const el = document.createElement("div");
+  el.className = `obj obj-${o2.type}`;
+  el.dataset.id = o2.id;
+  place(el, o2);
+  if (o2.type === "text") {
+    el.textContent = o2.text || "";
+    el.style.color = o2.color;
+    el.style.fontSize = o2.fontSize + "px";
+    el.spellcheck = false;
+    setEditable(el);
+    el.addEventListener("input", () => {
+      o2.text = el.innerText.replace(/\n$/, "");
+      saveText(o2);
+    });
+    el.addEventListener("focus", () => select(o2.id));
+    el.addEventListener("blur", () => {
+      flushText.flush();
+      if (!(o2.text || "").trim()) removeObj(o2, false);
+    });
+  } else {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.draggable = false;
+    assetURL(o2.assetId).then((u2) => {
+      if (u2) img.src = u2;
+      else el.classList.add("missing");
+    });
+    el.appendChild(img);
+  }
+  const h2 = document.createElement("div");
+  h2.className = "handle";
+  el.appendChild(h2);
+  el.addEventListener("pointerdown", (e2) => onObjDown(e2, o2, el));
+  return el;
+}
+function renderObjects() {
+  if (!layer) return;
+  layer.innerHTML = "";
+  const list = S.objects.filter((o2) => !o2.deleted).sort((a2, b2) => (a2.z || 0) - (b2.z || 0));
+  for (const o2 of list) layer.appendChild(buildEl(o2));
+  if (S.selectedId && !getSelected()) S.selectedId = null;
+  markSelection();
+}
+function markSelection() {
+  layer.querySelectorAll(".obj").forEach((el) => el.classList.toggle("sel", el.dataset.id === S.selectedId));
+  hooks.onSelect?.(getSelected());
+}
+function select(id) {
+  S.selectedId = id;
+  markSelection();
+}
+function onObjDown(e2, o2, el) {
+  if (isDrawMode()) return;
+  if (S.mode === "text") {
+    if (o2.type === "text") select(o2.id);
+    return;
+  }
+  e2.stopPropagation();
+  e2.preventDefault();
+  select(o2.id);
+  const isHandle = e2.target.classList.contains("handle");
+  const start2 = { x: o2.x, y: o2.y, w: o2.w, h: o2.h, cx: e2.clientX, cy: e2.clientY };
+  let moved = false;
+  try {
+    el.setPointerCapture(e2.pointerId);
+  } catch {
+  }
+  const move = (ev) => {
+    if (ev.pointerId !== e2.pointerId) return;
+    const dx = (ev.clientX - start2.cx) / S.s, dy = (ev.clientY - start2.cy) / S.s;
+    if (Math.abs(dx) + Math.abs(dy) > 1) moved = true;
+    if (isHandle) {
+      if (o2.type === "text") o2.w = Math.max(60, start2.w + dx);
+      else {
+        const r2 = start2.h / start2.w;
+        o2.w = Math.max(30, start2.w + dx);
+        o2.h = o2.w * r2;
+      }
+    } else {
+      o2.x = start2.x + dx;
+      o2.y = start2.y + dy;
+    }
+    place(el, o2);
+  };
+  const up = (ev) => {
+    if (ev.pointerId !== e2.pointerId) return;
+    el.removeEventListener("pointermove", move);
+    el.removeEventListener("pointerup", up);
+    el.removeEventListener("pointercancel", up);
+    if (moved) {
+      const before = { x: start2.x, y: start2.y, w: start2.w, h: start2.h }, after = { x: o2.x, y: o2.y, w: o2.w, h: o2.h };
+      touch(o2);
+      persist("objects", [o2]).catch(() => {
+      });
+      hooks.pushUndo({ store: "objects", kind: "edit", id: o2.id, before, after });
+    }
+  };
+  el.addEventListener("pointermove", move);
+  el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up);
+}
+function createText(x2, y2) {
+  const o2 = {
+    id: uid(),
+    pageId: S.pageId,
+    type: "text",
+    x: x2 - 6,
+    y: y2 - FONT_SIZES[S.sizeIdx] * 0.8,
+    w: 260,
+    h: 0,
+    text: "",
+    color: S.color,
+    fontSize: FONT_SIZES[S.sizeIdx],
+    z: nextZ(),
+    createdAt: Date.now(),
+    deleted: 0,
+    _new: true
+  };
+  S.objects.push(o2);
+  const el = buildEl(o2);
+  layer.appendChild(el);
+  select(o2.id);
+  el.focus();
+  return o2;
+}
+async function prepareImage(blob, sticker) {
+  let src, w2, h2, revoke = null;
+  try {
+    src = await createImageBitmap(blob);
+    w2 = src.width;
+    h2 = src.height;
+  } catch {
+    const u2 = URL.createObjectURL(blob);
+    revoke = u2;
+    src = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error("Image illisible"));
+      im.src = u2;
+    });
+    w2 = src.naturalWidth;
+    h2 = src.naturalHeight;
+  }
+  const max = sticker ? 900 : 1600;
+  const k2 = Math.min(1, max / Math.max(w2, h2));
+  const cw = Math.max(1, Math.round(w2 * k2)), ch = Math.max(1, Math.round(h2 * k2));
+  const c2 = document.createElement("canvas");
+  c2.width = cw;
+  c2.height = ch;
+  c2.getContext("2d").drawImage(src, 0, 0, cw, ch);
+  if (revoke) URL.revokeObjectURL(revoke);
+  const png = sticker || blob.type === "image/png" || blob.type === "image/webp" || blob.type === "image/gif";
+  const out = await new Promise((res) => c2.toBlob(res, png ? "image/png" : "image/jpeg", 0.86));
+  return { blob: out, w: cw, h: ch };
+}
+async function addImage(blob, { sticker = false, placeIt = true } = {}) {
+  const { blob: b2, w: w2, h: h2 } = await prepareImage(blob, sticker);
+  const asset = { id: uid(), blob: b2, mime: b2.type, w: w2, h: h2, isSticker: sticker ? 1 : 0, createdAt: Date.now(), deleted: 0 };
+  touch(asset);
+  await persist("assets", [asset]);
+  if (placeIt) placeAsset(asset);
+  return asset;
+}
+function placeAsset(asset) {
+  const target = asset.isSticker ? 170 : 320;
+  const w2 = Math.min(target, asset.w), h2 = w2 * asset.h / asset.w;
+  const c2 = hooks.visibleCenter();
+  const o2 = {
+    id: uid(),
+    pageId: S.pageId,
+    type: asset.isSticker ? "sticker" : "image",
+    x: c2.x - w2 / 2,
+    y: c2.y - h2 / 2,
+    w: w2,
+    h: h2,
+    assetId: asset.id,
+    z: nextZ(),
+    createdAt: Date.now(),
+    deleted: 0
+  };
+  touch(o2);
+  S.objects.push(o2);
+  layer.appendChild(buildEl(o2));
+  persist("objects", [o2]).catch(() => {
+  });
+  hooks.pushUndo({ store: "objects", kind: "add", ids: [o2.id] });
+  hooks.setMode?.("move");
+  select(o2.id);
+}
+function removeObj(o2, undoable) {
+  elOf(o2.id)?.remove();
+  if (o2._new) {
+    S.objects = S.objects.filter((x2) => x2 !== o2);
+  } else {
+    o2.deleted = 1;
+    touch(o2);
+    persist("objects", [o2]).catch(() => {
+    });
+    if (undoable) hooks.pushUndo({ store: "objects", kind: "del", ids: [o2.id] });
+  }
+  if (S.selectedId === o2.id) select(null);
+}
+function deleteSelected() {
+  const o2 = getSelected();
+  if (o2) removeObj(o2, true);
+}
+function editSelected(fn) {
+  const o2 = getSelected();
+  if (!o2) return;
+  const before = { x: o2.x, y: o2.y, w: o2.w, h: o2.h, z: o2.z, fontSize: o2.fontSize };
+  fn(o2);
+  const after = { x: o2.x, y: o2.y, w: o2.w, h: o2.h, z: o2.z, fontSize: o2.fontSize };
+  touch(o2);
+  persist("objects", [o2]).catch(() => {
+  });
+  hooks.pushUndo({ store: "objects", kind: "edit", id: o2.id, before, after });
+  renderObjects();
+}
+var bumpFont = (dir) => editSelected((o2) => {
+  if (o2.type === "text") o2.fontSize = Math.max(10, Math.min(96, Math.round(o2.fontSize * (dir > 0 ? 1.2 : 1 / 1.2))));
+});
+var bringFront = () => editSelected((o2) => {
+  o2.z = nextZ();
+});
+async function selectedToSticker() {
+  const o2 = getSelected();
+  if (!o2 || o2.type === "text") return false;
+  const a2 = await get("assets", o2.assetId);
+  if (!a2) return false;
+  a2.isSticker = 1;
+  touch(a2);
+  await persist("assets", [a2]);
+  return true;
+}
+
+// ../calenstine/js/ocr.js
+var ocr_exports = {};
+__export(ocr_exports, {
+  clusterStrokes: () => clusterStrokes,
+  initOCR: () => initOCR,
+  ocrStats: () => ocrStats,
+  ocrStatus: () => ocrStatus,
+  recognizePage: () => recognizePage,
+  reindexAll: () => reindexAll,
+  retryPending: () => retryPending,
+  scheduleOCR: () => scheduleOCR,
+  search: () => search
+});
+var ENDPOINTS = [
+  "https://www.google.com/inputtools/request?ime=handwriting&app=mobilesearch&cs=1&oe=UTF-8",
+  "https://inputtools.google.com/request?ime=handwriting&app=mobilesearch&cs=1&oe=UTF-8"
+];
+var ocrStatus = { lastError: null, running: false };
+async function recognizeInk(group) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const st of group) for (const [x2, y2] of st.points) {
+    x0 = Math.min(x0, x2);
+    y0 = Math.min(y0, y2);
+    x1 = Math.max(x1, x2);
+    y1 = Math.max(y1, y2);
+  }
+  const ink = group.map((st) => {
+    const xs = [], ys = [];
+    let lx = null, ly = null;
+    for (const [x2, y2] of st.points) {
+      if (lx !== null && Math.abs(x2 - lx) + Math.abs(y2 - ly) < 1.5) continue;
+      xs.push(Math.round((x2 - x0) * 2));
+      ys.push(Math.round((y2 - y0) * 2));
+      lx = x2;
+      ly = y2;
+    }
+    return [xs, ys, []];
+  });
+  const body = JSON.stringify({
+    options: "enable_pre_space",
+    requests: [{
+      writing_guide: { writing_area_width: Math.max(1, Math.round((x1 - x0) * 2)), writing_area_height: Math.max(1, Math.round((y1 - y0) * 2)) },
+      ink,
+      language: "fr"
+    }]
+  });
+  let lastErr = null;
+  for (const url of ENDPOINTS) {
+    try {
+      const r2 = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+      if (!r2.ok) {
+        lastErr = new Error("HTTP " + r2.status);
+        continue;
+      }
+      const j2 = await r2.json();
+      if (j2[0] !== "SUCCESS") {
+        lastErr = new Error(String(j2[0]));
+        continue;
+      }
+      return (j2[1]?.[0]?.[1] || []).slice(0, 3);
+    } catch (e2) {
+      lastErr = e2;
+    }
+  }
+  throw lastErr || new Error("Reconnaissance impossible");
+}
+function clusterStrokes(strokes) {
+  const n2 = strokes.length;
+  const parent = strokes.map((_2, i2) => i2);
+  const find = (i2) => parent[i2] === i2 ? i2 : parent[i2] = find(parent[i2]);
+  const GX = 18, GY = 5;
+  const bbs = strokes.map((s2) => s2.bb || computeBB(s2.points, s2.size));
+  for (let i2 = 0; i2 < n2; i2++) for (let j2 = i2 + 1; j2 < n2; j2++) {
+    const a2 = bbs[i2], b2 = bbs[j2];
+    if (a2[0] - GX <= b2[2] && b2[0] - GX <= a2[2] && a2[1] - GY <= b2[3] && b2[1] - GY <= a2[3]) parent[find(i2)] = find(j2);
+  }
+  const groups = /* @__PURE__ */ new Map();
+  strokes.forEach((s2, i2) => {
+    const r2 = find(i2);
+    if (!groups.has(r2)) groups.set(r2, []);
+    groups.get(r2).push(s2);
+  });
+  return [...groups.values()].map((g2) => g2.sort((a2, b2) => (a2.createdAt || 0) - (b2.createdAt || 0)));
+}
+function keyOf(group) {
+  const s2 = group.map((g2) => g2.id).sort().join(",");
+  let h2 = 2166136261;
+  for (let i2 = 0; i2 < s2.length; i2++) {
+    h2 ^= s2.charCodeAt(i2);
+    h2 = Math.imul(h2, 16777619);
+  }
+  return (h2 >>> 0).toString(36) + ":" + group.length;
+}
+async function runLimited(items, limit, fn) {
+  let i2 = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i2 < items.length) {
+      const k2 = i2++;
+      await fn(items[k2], k2);
+    }
+  });
+  await Promise.all(workers);
+}
+async function recognizePage(pageId) {
+  const strokes = (await byIndex("strokes", "pageId", pageId)).filter((s2) => !s2.deleted && s2.tool === "pen");
+  const prev = await get("ocr", pageId);
+  const prevMap = new Map((prev?.items || []).map((it) => [it.key, it]));
+  const groups = clusterStrokes(strokes);
+  const items = new Array(groups.length);
+  let failed = 0;
+  await runLimited(groups, 3, async (g2, k2) => {
+    const key = keyOf(g2);
+    const bb = computeBB(g2.flatMap((s2) => s2.points), 0);
+    const old = prevMap.get(key);
+    if (old && old.text != null) {
+      items[k2] = old;
+      return;
+    }
+    if (!S.settings.ocr || !navigator.onLine) {
+      items[k2] = { key, text: null, bb };
+      failed++;
+      return;
+    }
+    try {
+      const c2 = await recognizeInk(g2);
+      items[k2] = { key, text: c2[0] || "", alts: c2.slice(1), bb };
+      ocrStatus.lastError = null;
+    } catch (e2) {
+      ocrStatus.lastError = e2.message || String(e2);
+      items[k2] = { key, text: null, bb };
+      failed++;
+    }
+  });
+  await put("ocr", { pageId, items, updatedAt: Date.now(), pending: failed ? 1 : 0 });
+  return { groups: groups.length, failed };
+}
+var queue = /* @__PURE__ */ new Set();
+var process = debounce(async () => {
+  if (ocrStatus.running) {
+    process();
+    return;
+  }
+  ocrStatus.running = true;
+  try {
+    for (const pid of [...queue]) {
+      queue.delete(pid);
+      await recognizePage(pid);
+    }
+  } catch (e2) {
+    console.warn("OCR", e2);
+  }
+  ocrStatus.running = false;
+}, 2500);
+function scheduleOCR(pageIds) {
+  for (const p2 of pageIds) queue.add(p2);
+  process();
+}
+async function retryPending() {
+  const all = await getAll("ocr");
+  scheduleOCR(all.filter((r2) => r2.pending).map((r2) => r2.pageId));
+}
+async function reindexAll() {
+  const strokes = await getAll("strokes");
+  const pages = [...new Set(strokes.filter((s2) => !s2.deleted && s2.tool === "pen").map((s2) => s2.pageId))];
+  const all = await getAll("ocr");
+  for (const r2 of all) if (!pages.includes(r2.pageId)) await put("ocr", { pageId: r2.pageId, items: [], updatedAt: Date.now(), pending: 0 });
+  let failed = 0;
+  for (const p2 of pages) failed += (await recognizePage(p2)).failed;
+  return { pages: pages.length, failed };
+}
+async function ocrStats() {
+  const all = await getAll("ocr");
+  return { pages: all.filter((r2) => r2.items?.length).length, pending: all.filter((r2) => r2.pending).length };
+}
+function initOCR() {
+  on("data-changed", ({ store, pageIds }) => {
+    if (store === "strokes") scheduleOCR(pageIds);
+  });
+  window.addEventListener("online", retryPending);
+  setTimeout(retryPending, 4e3);
+}
+async function search(q) {
+  const terms = norm(q).split(" ").filter(Boolean);
+  if (!terms.length) return [];
+  const results = [];
+  const match = (s2) => {
+    const h2 = norm(s2);
+    return terms.every((t2) => h2.includes(t2));
+  };
+  for (const rec of await getAll("ocr")) {
+    for (const it of rec.items || []) {
+      if (it.text == null) continue;
+      if (match([it.text, ...it.alts || []].join(" "))) results.push({ pageId: rec.pageId, text: it.text, bb: it.bb, kind: "ink" });
+    }
+  }
+  for (const o2 of await getAll("objects")) {
+    if (o2.deleted || o2.type !== "text" || !o2.text) continue;
+    if (match(o2.text)) results.push({ pageId: o2.pageId, text: o2.text, bb: [o2.x, o2.y, o2.x + o2.w, o2.y + o2.fontSize * 1.4 * Math.max(1, o2.text.split("\n").length)], kind: "text" });
+  }
+  results.sort((a2, b2) => parsePageId(b2.pageId).date - parsePageId(a2.pageId).date);
+  return results;
+}
+
+// ../calenstine/js/backup.js
+var backup_exports = {};
+__export(backup_exports, {
+  buildBackup: () => buildBackup,
+  downloadFile: () => downloadFile,
+  importBackup: () => importBackup,
+  renderPagePNG: () => renderPagePNG,
+  shareFile: () => shareFile
+});
+var stamp = () => {
+  const d2 = /* @__PURE__ */ new Date();
+  return `${d2.getFullYear()}-${pad(d2.getMonth() + 1)}-${pad(d2.getDate())}-${pad(d2.getHours())}h${pad(d2.getMinutes())}`;
+};
+var strip = ({ dirty, ...r2 }) => r2;
+async function buildBackup() {
+  const [strokes, objects, assets, ocr] = await Promise.all(["strokes", "objects", "assets", "ocr"].map(getAll));
+  const assetsOut = [];
+  for (const a2 of assets) {
+    const { blob, ...rest } = a2;
+    assetsOut.push({ ...strip(rest), data: blob ? await blobToDataURL(blob) : null });
+  }
+  const json = JSON.stringify({
+    app: "calenstine",
+    format: 1,
+    exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    strokes: strokes.map(strip),
+    objects: objects.map(strip),
+    assets: assetsOut,
+    ocr
+  });
+  return new File([json], `calenstine-sauvegarde-${stamp()}.json`, { type: "application/json" });
+}
+function downloadFile(file) {
+  const url = URL.createObjectURL(file);
+  const a2 = document.createElement("a");
+  a2.href = url;
+  a2.download = file.name;
+  document.body.appendChild(a2);
+  a2.click();
+  a2.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 6e4);
+}
+async function shareFile(file) {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: file.name });
+      return "shared";
+    } catch (e2) {
+      if (e2.name === "AbortError") return "cancelled";
+    }
+  }
+  downloadFile(file);
+  return "downloaded";
+}
+async function importBackup(file) {
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    throw new Error("Fichier illisible (JSON invalide)");
+  }
+  if (data.app !== "calenstine") throw new Error("Ce fichier n\u2019est pas une sauvegarde Calenstine");
+  const counts = { strokes: 0, objects: 0, assets: 0 };
+  for (const store of ["strokes", "objects", "assets"]) {
+    const local = new Map((await getAll(store)).map((r2) => [r2.id, r2]));
+    const out = [];
+    for (const rec of data[store] || []) {
+      const l2 = local.get(rec.id);
+      if (l2 && (l2.updatedAt || 0) >= (rec.updatedAt || 0)) continue;
+      const r2 = { ...rec, dirty: 1 };
+      if (store === "assets") {
+        if (rec.data) r2.blob = await dataURLToBlob(rec.data);
+        else if (l2?.blob) r2.blob = l2.blob;
+        delete r2.data;
+      }
+      out.push(r2);
+    }
+    if (out.length) await putMany(store, out);
+    counts[store] = out.length;
+  }
+  for (const rec of data.ocr || []) if (!await get("ocr", rec.pageId)) await put("ocr", rec);
+  emit("data-changed", { store: "import", pageIds: [] });
+  return counts;
+}
+function wrapLines(ctx, text, maxW) {
+  const out = [];
+  for (const para of String(text).split("\n")) {
+    let line2 = "";
+    for (const word of para.split(" ")) {
+      const test = line2 ? line2 + " " + word : word;
+      if (ctx.measureText(test).width > maxW && line2) {
+        out.push(line2);
+        line2 = word;
+      } else line2 = test;
+    }
+    out.push(line2);
+  }
+  return out;
+}
+async function renderPagePNG(k2 = 2) {
+  const c2 = document.createElement("canvas");
+  c2.width = W * k2;
+  c2.height = H * k2;
+  const ctx = c2.getContext("2d");
+  ctx.scale(k2, k2);
+  const { markup } = renderGrid(S.view, S.date);
+  const svgUrl = URL.createObjectURL(new Blob([svgDocument(markup)], { type: "image/svg+xml" }));
+  try {
+    ctx.drawImage(await loadImage(svgUrl), 0, 0, W, H);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
+  for (const o2 of S.objects.filter((o3) => !o3.deleted).sort((a2, b2) => (a2.z || 0) - (b2.z || 0))) {
+    if (o2.type === "text") {
+      ctx.fillStyle = o2.color;
+      ctx.font = `${o2.fontSize}px -apple-system, system-ui, sans-serif`;
+      ctx.textBaseline = "top";
+      wrapLines(ctx, o2.text || "", o2.w - 12).forEach((l2, i2) => ctx.fillText(l2, o2.x + 6, o2.y + 4 + i2 * o2.fontSize * 1.25));
+    } else {
+      const u2 = await assetURL(o2.assetId);
+      if (u2) {
+        try {
+          ctx.drawImage(await loadImage(u2), o2.x, o2.y, o2.w, o2.h);
+        } catch {
+        }
+      }
+    }
+  }
+  const off = document.createElement("canvas");
+  off.width = c2.width;
+  off.height = c2.height;
+  const octx = off.getContext("2d");
+  octx.scale(k2, k2);
+  paintStrokes(octx, S.strokes, "highlighter");
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 0.42;
+  ctx.globalCompositeOperation = "multiply";
+  ctx.drawImage(off, 0, 0);
+  ctx.restore();
+  paintStrokes(ctx, S.strokes, "pen");
+  const blob = await new Promise((res) => c2.toBlob(res, "image/png"));
+  return new File([blob], `calenstine-${S.pageId.replace(":", "-")}.png`, { type: "image/png" });
+}
+
+// ../calenstine/js/sync.js
+var sync_exports = {};
+__export(sync_exports, {
+  initSync: () => initSync,
+  login: () => login,
+  logout: () => logout,
+  scheduleSync: () => scheduleSync,
+  syncNow: () => syncNow,
+  syncState: () => syncState
+});
+var syncState = { cfg: null, status: "off", message: "", lastSync: 0, running: false };
+var STORES = ["assets", "strokes", "objects"];
+function set(status, message = "") {
+  syncState.status = status;
+  syncState.message = message;
+  emit("sync-state");
+}
+var base = () => syncState.cfg.url.replace(/\/+$/, "");
+async function api(path, { method = "GET", body, form } = {}) {
+  const headers = {};
+  if (syncState.cfg?.token) headers.Authorization = syncState.cfg.token;
+  let b2;
+  if (form) b2 = form;
+  else if (body !== void 0) {
+    headers["Content-Type"] = "application/json";
+    b2 = JSON.stringify(body);
+  }
+  const r2 = await fetch(base() + path, { method, headers, body: b2 });
+  let j2 = null;
+  try {
+    j2 = await r2.json();
+  } catch {
+  }
+  if (!r2.ok) {
+    const e2 = new Error(j2?.message || "Erreur HTTP " + r2.status);
+    e2.status = r2.status;
+    e2.data = j2?.data;
+    throw e2;
+  }
+  return j2;
+}
+async function login(url, email, password) {
+  url = url.trim().replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+  syncState.cfg = { url, email };
+  try {
+    const j2 = await api("/api/collections/users/auth-with-password", { method: "POST", body: { identity: email.trim(), password } });
+    syncState.cfg = { url, email: email.trim(), token: j2.token, userId: j2.record.id };
+  } catch (e2) {
+    syncState.cfg = null;
+    throw e2;
+  }
+  await setMeta("sync", syncState.cfg);
+  for (const store of STORES) {
+    const all = await getAll(store);
+    for (const r2 of all) r2.dirty = 1;
+    if (all.length) await putMany(store, all);
+  }
+  await setMeta("lastPull", "");
+  set("idle");
+  syncNow();
+}
+async function logout() {
+  syncState.cfg = null;
+  await setMeta("sync", null);
+  set("off");
+}
+var strip2 = ({ dirty, remote, blob, ...r2 }) => r2;
+var ext = (mime) => mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : mime === "image/gif" ? "gif" : "jpg";
+async function pushOne(store, rec) {
+  const payload = {
+    owner: syncState.cfg.userId,
+    kind: store,
+    pageId: rec.pageId || "",
+    data: strip2(rec),
+    clientUpdated: rec.updatedAt || 0,
+    deleted: !!rec.deleted
+  };
+  const make = (withId) => {
+    const p2 = withId ? { ...payload, id: rec.id } : payload;
+    if (store === "assets" && rec.blob) {
+      const f2 = new FormData();
+      f2.append("@jsonPayload", JSON.stringify(p2));
+      f2.append("file", rec.blob, `${rec.id}.${ext(rec.mime)}`);
+      return { form: f2 };
+    }
+    return { body: p2 };
+  };
+  if (rec.remote) {
+    try {
+      return await api(`/api/collections/items/records/${rec.id}`, { method: "PATCH", ...make(false) });
+    } catch (e2) {
+      if (e2.status !== 404) throw e2;
+    }
+  }
+  try {
+    return await api("/api/collections/items/records", { method: "POST", ...make(true) });
+  } catch (e2) {
+    if (e2.status === 400 && e2.data?.id) return api(`/api/collections/items/records/${rec.id}`, { method: "PATCH", ...make(false) });
+    throw e2;
+  }
+}
+async function push() {
+  let n2 = 0;
+  for (const store of STORES) {
+    for (const rec of await byIndex(store, "dirty", 1)) {
+      await pushOne(store, rec);
+      const cur = await get(store, rec.id);
+      if (cur) {
+        if (cur.updatedAt === rec.updatedAt) cur.dirty = 0;
+        cur.remote = 1;
+        await put(store, cur);
+      }
+      n2++;
+    }
+  }
+  return n2;
+}
+async function applyRemote(it, res) {
+  const store = it.kind;
+  if (!STORES.includes(store)) return;
+  const local = await get(store, it.id);
+  if (local && (local.updatedAt || 0) >= (it.clientUpdated || 0)) {
+    if (!local.remote) {
+      local.remote = 1;
+      await put(store, local);
+    }
+    return;
+  }
+  const rec = { ...it.data || {}, id: it.id, updatedAt: it.clientUpdated || 0, deleted: it.deleted ? 1 : 0, dirty: 0, remote: 1 };
+  if (store === "assets") {
+    if (it.file) {
+      const r2 = await fetch(`${base()}/api/files/items/${it.id}/${encodeURIComponent(it.file)}`);
+      if (r2.ok) rec.blob = await r2.blob();
+    }
+    if (!rec.blob && local?.blob) rec.blob = local.blob;
+    res.assets.push(it.id);
+  }
+  await put(store, rec);
+  if (rec.pageId) res.pageIds.add(rec.pageId);
+}
+async function pull() {
+  const lastPull = await getMeta("lastPull") || "";
+  const res = { pageIds: /* @__PURE__ */ new Set(), assets: [] };
+  let max = lastPull;
+  for (let page = 1; ; page++) {
+    const filter = lastPull ? `&filter=${encodeURIComponent(`updated >= "${lastPull}"`)}` : "";
+    const j2 = await api(`/api/collections/items/records?perPage=200&page=${page}&sort=updated,id&skipTotal=1${filter}`);
+    for (const it of j2.items) {
+      await applyRemote(it, res);
+      if (it.updated > max) max = it.updated;
+    }
+    if (j2.items.length < 200) break;
+  }
+  if (max !== lastPull) await setMeta("lastPull", max);
+  return res;
+}
+var again = false;
+async function syncNow() {
+  if (!syncState.cfg?.token) return;
+  if (!navigator.onLine) {
+    set("offline", "Hors ligne \u2014 tout reste enregistr\xE9 sur l\u2019iPad");
+    return;
+  }
+  if (syncState.running) {
+    again = true;
+    return;
+  }
+  syncState.running = true;
+  set("running");
+  try {
+    const j2 = await api("/api/collections/users/auth-refresh", { method: "POST" });
+    syncState.cfg.token = j2.token;
+    await setMeta("sync", syncState.cfg);
+    await push();
+    const res = await pull();
+    syncState.lastSync = Date.now();
+    await setMeta("lastSync", syncState.lastSync);
+    set("ok");
+    if (res.pageIds.size || res.assets.length) emit("remote-changed", { pageIds: [...res.pageIds], assets: res.assets });
+  } catch (e2) {
+    if (e2.status === 401 || e2.status === 403) set("auth", "Session expir\xE9e : reconnecte-toi (Menu \u2192 Synchronisation). Rien n\u2019est perdu.");
+    else set("error", e2.message || String(e2));
+  } finally {
+    syncState.running = false;
+    if (again) {
+      again = false;
+      setTimeout(syncNow, 500);
+    }
+  }
+}
+var scheduleSync = debounce(() => syncNow(), 4e3);
+async function initSync() {
+  syncState.cfg = await getMeta("sync") || null;
+  syncState.lastSync = await getMeta("lastSync") || 0;
+  set(syncState.cfg?.token ? "idle" : "off");
+  on("data-changed", () => scheduleSync());
+  window.addEventListener("online", () => syncNow());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") syncNow();
+  });
+  setInterval(() => syncNow(), 12e4);
+  setTimeout(() => syncNow(), 1500);
+}
+
+// ../calenstine/js/app.js
+var VERSION = "1.0.0";
+var PEN_COLORS = [["#2f2b3a", "Noir"], ["#8a6fd1", "Violet"], ["#e04848", "Rouge"], ["#3b7dd8", "Bleu"], ["#3aa66a", "Vert"], ["#f08a24", "Orange"], ["#e86fb0", "Rose"]];
+var HL_COLORS = [["#ffe14d", "Jaune"], ["#ff9ccf", "Rose"], ["#8ff0a4", "Vert"], ["#9fd3ff", "Bleu"], ["#cdb8ff", "Violet"], ["#ffc078", "Orange"]];
+var stage = $("#stage");
+var paper = $("#paper");
+var grid = $("#grid");
+var layer2 = $("#objects");
+var history = /* @__PURE__ */ new Map();
+var hist = () => {
+  if (!history.has(S.pageId)) history.set(S.pageId, { undo: [], redo: [] });
+  return history.get(S.pageId);
+};
+function pushUndo(a2) {
+  const h2 = hist();
+  h2.undo.push(a2);
+  if (h2.undo.length > 300) h2.undo.shift();
+  h2.redo.length = 0;
+  updateUndoUI();
+}
+async function applyAction(a2, isUndo) {
+  const list = a2.store === "strokes" ? S.strokes : S.objects;
+  if (a2.kind === "edit") {
+    const o2 = list.find((x2) => x2.id === a2.id);
+    if (!o2) return;
+    Object.assign(o2, isUndo ? a2.before : a2.after);
+    touch(o2);
+    await persist(a2.store, [o2]);
+  } else {
+    const del = a2.kind === "add" ? isUndo : !isUndo;
+    const recs = list.filter((x2) => a2.ids.includes(x2.id));
+    recs.forEach((r2) => {
+      r2.deleted = del ? 1 : 0;
+      touch(r2);
+    });
+    await persist(a2.store, recs);
+  }
+  if (a2.store === "strokes") redrawAll();
+  else renderObjects();
+}
+async function undo() {
+  const h2 = hist();
+  const a2 = h2.undo.pop();
+  if (!a2) return;
+  await applyAction(a2, true);
+  h2.redo.push(a2);
+  updateUndoUI();
+}
+async function redo() {
+  const h2 = hist();
+  const a2 = h2.redo.pop();
+  if (!a2) return;
+  await applyAction(a2, false);
+  h2.undo.push(a2);
+  updateUndoUI();
+}
+function updateUndoUI() {
+  const h2 = hist();
+  $("#btn-undo").disabled = !h2.undo.length;
+  $("#btn-redo").disabled = !h2.redo.length;
+}
+function samePeriod(view, a2, b2) {
+  if (view === "day") return a2.toDateString() === b2.toDateString();
+  if (view === "week") {
+    const x2 = isoWeek(a2), y2 = isoWeek(b2);
+    return x2.year === y2.year && x2.week === y2.week;
+  }
+  if (view === "month") return a2.getFullYear() === b2.getFullYear() && a2.getMonth() === b2.getMonth();
+  return a2.getFullYear() === b2.getFullYear();
+}
+async function goto(view, date) {
+  flushPendingText();
+  if (document.activeElement?.blur) document.activeElement.blur();
+  S.view = view;
+  S.date = date;
+  S.pageId = pageIdFor(view, date);
+  S.selectedId = null;
+  try {
+    localStorage.setItem("calenstine.view", view);
+  } catch {
+  }
+  const g2 = renderGrid(view, date);
+  grid.innerHTML = g2.markup;
+  $("#title").textContent = g2.title;
+  document.title = `${g2.title} \xB7 Calenstine`;
+  $$("#view-seg button").forEach((b2) => b2.classList.toggle("on", b2.dataset.view === view));
+  S.zoom = 1;
+  S.strokes = [];
+  S.objects = [];
+  layout();
+  await loadPageData();
+}
+var gotoPage = (pid) => {
+  const { view, date } = parsePageId(pid);
+  return goto(view, date);
+};
+async function loadPageData() {
+  const pid = S.pageId;
+  const [st, ob] = await Promise.all([byIndex("strokes", "pageId", pid), byIndex("objects", "pageId", pid)]);
+  if (pid !== S.pageId) return;
+  S.strokes = st.sort((a2, b2) => (a2.createdAt || 0) - (b2.createdAt || 0));
+  S.objects = ob;
+  redrawAll();
+  renderObjects();
+  updateUndoUI();
+}
+function step(dir) {
+  const d2 = S.date;
+  let nd;
+  if (S.view === "day") nd = addDays(d2, dir);
+  else if (S.view === "week") nd = addDays(d2, 7 * dir);
+  else if (S.view === "month") nd = new Date(d2.getFullYear(), d2.getMonth() + dir, 1);
+  else nd = new Date(d2.getFullYear() + dir, 0, 1);
+  goto(S.view, nd);
+}
+function switchView(view) {
+  const t2 = today();
+  goto(view, samePeriod(S.view, S.date, t2) ? t2 : S.date);
+}
+function layout() {
+  const r2 = stage.getBoundingClientRect();
+  S.stageW = r2.width;
+  S.stageH = r2.height;
+  S.dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const pad2 = 14;
+  S.fit = Math.max(0.05, Math.min((r2.width - 2 * pad2) / W, (r2.height - 2 * pad2) / H));
+  if (S.zoom <= 1) {
+    S.zoom = 1;
+    S.s = S.fit;
+    S.ox = (r2.width - W * S.s) / 2;
+    S.oy = (r2.height - H * S.s) / 2;
+  } else {
+    S.s = S.fit * S.zoom;
+    clampPan();
+  }
+  paper.style.width = W + "px";
+  paper.style.height = H + "px";
+  applyTransform();
+  resizeCanvases();
+  redrawAll();
+}
+function applyTransform() {
+  paper.style.transform = `translate(${S.ox}px, ${S.oy}px) scale(${S.s})`;
+}
+function clampPan() {
+  const pw = W * S.s, ph = H * S.s, m2 = 90;
+  S.ox = Math.min(S.stageW - m2, Math.max(m2 - pw, S.ox));
+  S.oy = Math.min(S.stageH - m2, Math.max(m2 - ph, S.oy));
+}
+var redrawRAF = 0;
+var scheduleRedraw = () => {
+  if (!redrawRAF) redrawRAF = requestAnimationFrame(() => {
+    redrawRAF = 0;
+    redrawAll();
+  });
+};
+function zoomAt(cx, cy, newZoom) {
+  const z = Math.min(5, Math.max(1, newZoom));
+  const lx = (cx - S.ox) / S.s, ly = (cy - S.oy) / S.s;
+  S.zoom = z;
+  if (z === 1) {
+    layout();
+    return;
+  }
+  S.s = S.fit * z;
+  S.ox = cx - lx * S.s;
+  S.oy = cy - ly * S.s;
+  clampPan();
+  applyTransform();
+  scheduleRedraw();
+}
+function visibleCenter() {
+  const cx = (S.stageW / 2 - S.ox) / S.s, cy = (S.stageH / 2 - S.oy) / S.s;
+  return { x: Math.min(W - 120, Math.max(120, cx)), y: Math.min(H - 120, Math.max(120, cy)) };
+}
+var touches = /* @__PURE__ */ new Map();
+var pinch = null;
+var swipe = null;
+var drawing = null;
+var erasing = null;
+var lastPen = 0;
+var lastTap = 0;
+var liveRAF = 0;
+function toLogical(cx, cy) {
+  const r2 = stage.getBoundingClientRect();
+  return { x: (cx - r2.left - S.ox) / S.s, y: (cy - r2.top - S.oy) / S.s };
+}
+var pressureOf = (e2) => e2.pointerType === "pen" ? e2.pressure > 0 ? e2.pressure : 0.5 : 0.5;
+var scheduleLive = () => {
+  if (!liveRAF) liveRAF = requestAnimationFrame(() => {
+    liveRAF = 0;
+    if (drawing) drawLive(drawing);
+  });
+};
+function startDraw(e2) {
+  try {
+    stage.setPointerCapture(e2.pointerId);
+  } catch {
+  }
+  const p2 = toLogical(e2.clientX, e2.clientY);
+  if (S.mode === "eraser") {
+    erasing = { id: e2.pointerId, ids: /* @__PURE__ */ new Set(), r: SIZES.eraser[S.sizeIdx], last: p2 };
+    eraseAt(p2);
+    return;
+  }
+  const tool = S.mode === "highlighter" ? "highlighter" : "pen";
+  drawing = {
+    id: e2.pointerId,
+    pointerType: e2.pointerType,
+    tool,
+    color: tool === "pen" ? S.color : S.hlColor,
+    size: SIZES[tool][S.sizeIdx],
+    sp: e2.pointerType !== "pen",
+    points: [[p2.x, p2.y, pressureOf(e2)]]
+  };
+  scheduleLive();
+}
+function endDraw(cancelled) {
+  const d2 = drawing;
+  drawing = null;
+  if (liveRAF) {
+    cancelAnimationFrame(liveRAF);
+    liveRAF = 0;
+  }
+  clearLive();
+  if (!d2 || cancelled && d2.points.length < 2) return;
+  const pts = d2.points.map(([x2, y2, p2]) => [Math.round(x2 * 10) / 10, Math.round(y2 * 10) / 10, Math.round(p2 * 100) / 100]);
+  const st = {
+    id: uid(),
+    pageId: S.pageId,
+    tool: d2.tool,
+    color: d2.color,
+    size: d2.size,
+    sp: d2.sp ? 1 : 0,
+    points: pts,
+    bb: computeBB(pts, d2.size),
+    createdAt: Date.now(),
+    deleted: 0
+  };
+  touch(st);
+  S.strokes.push(st);
+  drawOne(st);
+  persist("strokes", [st]).catch(() => {
+  });
+  pushUndo({ store: "strokes", kind: "add", ids: [st.id] });
+}
+function eraseAt(p2) {
+  const e2 = erasing;
+  const steps = Math.max(1, Math.ceil(Math.hypot(p2.x - e2.last.x, p2.y - e2.last.y) / (e2.r / 2)));
+  let hit = false;
+  for (let i2 = 1; i2 <= steps; i2++) {
+    const x2 = e2.last.x + (p2.x - e2.last.x) * i2 / steps, y2 = e2.last.y + (p2.y - e2.last.y) * i2 / steps;
+    for (const st of S.strokes) {
+      if (st.deleted) continue;
+      if (hitStroke(st, x2, y2, e2.r)) {
+        st.deleted = 1;
+        touch(st);
+        e2.ids.add(st.id);
+        hit = true;
+      }
+    }
+  }
+  e2.last = p2;
+  if (hit) redrawAll();
+  drawEraserCursor(p2.x, p2.y, e2.r);
+}
+function endErase() {
+  const e2 = erasing;
+  erasing = null;
+  clearLive();
+  if (!e2.ids.size) return;
+  const recs = S.strokes.filter((s2) => e2.ids.has(s2.id));
+  persist("strokes", recs).catch(() => {
+  });
+  pushUndo({ store: "strokes", kind: "del", ids: [...e2.ids] });
+}
+function startPinch() {
+  const [a2, b2] = [...touches.values()];
+  const r2 = stage.getBoundingClientRect();
+  pinch = { d0: Math.hypot(a2.x - b2.x, a2.y - b2.y) || 1, mx0: (a2.x + b2.x) / 2 - r2.left, my0: (a2.y + b2.y) / 2 - r2.top, s0: S.s, ox0: S.ox, oy0: S.oy, z0: S.zoom };
+}
+function updatePinch() {
+  const [a2, b2] = [...touches.values()];
+  const r2 = stage.getBoundingClientRect();
+  const d2 = Math.hypot(a2.x - b2.x, a2.y - b2.y);
+  const mx = (a2.x + b2.x) / 2 - r2.left, my = (a2.y + b2.y) / 2 - r2.top;
+  S.zoom = Math.min(5, Math.max(1, pinch.z0 * d2 / pinch.d0));
+  S.s = S.fit * S.zoom;
+  const lx = (pinch.mx0 - pinch.ox0) / pinch.s0, ly = (pinch.my0 - pinch.oy0) / pinch.s0;
+  S.ox = mx - lx * S.s;
+  S.oy = my - ly * S.s;
+  clampPan();
+  applyTransform();
+  scheduleRedraw();
+}
+function onDown(e2) {
+  if (!isDrawMode() && e2.target.closest?.(".obj")) return;
+  if (e2.pointerType === "touch") {
+    if (drawing && drawing.pointerType !== "touch") return;
+    if (performance.now() - lastPen < 350) return;
+    touches.set(e2.pointerId, { x: e2.clientX, y: e2.clientY });
+    if (touches.size === 2) {
+      if (drawing) endDraw(true);
+      swipe = null;
+      startPinch();
+      return;
+    }
+    if (touches.size > 2) return;
+    if (isDrawMode() && S.settings.fingerDraw) {
+      startDraw(e2);
+      return;
+    }
+    swipe = { id: e2.pointerId, x0: e2.clientX, y0: e2.clientY, t0: performance.now(), ox0: S.ox, oy0: S.oy, moved: false };
+    return;
+  }
+  if (e2.button > 0) return;
+  if (e2.pointerType === "pen") {
+    lastPen = performance.now();
+    pinch = null;
+    swipe = null;
+  }
+  if (isDrawMode()) {
+    e2.preventDefault();
+    startDraw(e2);
+  } else if (S.mode === "move" && !e2.target.closest?.(".nav")) select(null);
+}
+function onMove(e2) {
+  if (touches.has(e2.pointerId)) {
+    touches.set(e2.pointerId, { x: e2.clientX, y: e2.clientY });
+    if (pinch && touches.size >= 2) {
+      updatePinch();
+      return;
+    }
+  }
+  if (drawing && e2.pointerId === drawing.id) {
+    const evs = e2.getCoalescedEvents ? e2.getCoalescedEvents() : [];
+    for (const ev of evs.length ? evs : [e2]) {
+      const p2 = toLogical(ev.clientX, ev.clientY);
+      const last = drawing.points[drawing.points.length - 1];
+      if (Math.abs(p2.x - last[0]) + Math.abs(p2.y - last[1]) < 0.35) continue;
+      drawing.points.push([p2.x, p2.y, pressureOf(ev)]);
+    }
+    if (e2.pointerType === "pen") lastPen = performance.now();
+    scheduleLive();
+    return;
+  }
+  if (erasing && e2.pointerId === erasing.id) {
+    eraseAt(toLogical(e2.clientX, e2.clientY));
+    return;
+  }
+  if (swipe && e2.pointerId === swipe.id) {
+    const dx = e2.clientX - swipe.x0, dy = e2.clientY - swipe.y0;
+    if (Math.abs(dx) + Math.abs(dy) > 8) swipe.moved = true;
+    if (S.zoom > 1) {
+      S.ox = swipe.ox0 + dx;
+      S.oy = swipe.oy0 + dy;
+      clampPan();
+      applyTransform();
+      scheduleRedraw();
+    }
+  }
+}
+function onUp(e2) {
+  if (drawing && e2.pointerId === drawing.id) endDraw(false);
+  else if (erasing && e2.pointerId === erasing.id) endErase();
+  if (e2.pointerType === "pen") lastPen = performance.now();
+  if (touches.has(e2.pointerId)) {
+    touches.delete(e2.pointerId);
+    if (pinch && touches.size < 2) {
+      pinch = null;
+      if (S.zoom < 1.05) {
+        S.zoom = 1;
+        layout();
+      }
+    }
+  }
+  if (swipe && e2.pointerId === swipe.id) {
+    const dx = e2.clientX - swipe.x0, dy = e2.clientY - swipe.y0, dt = performance.now() - swipe.t0;
+    if (e2.type !== "pointercancel" && S.zoom === 1 && Math.abs(dx) > 80 && Math.abs(dx) > 2 * Math.abs(dy) && dt < 800) step(dx < 0 ? 1 : -1);
+    else if (!swipe.moved && dt < 260) {
+      const now = performance.now();
+      if (now - lastTap < 330) {
+        S.zoom = 1;
+        layout();
+        lastTap = 0;
+      } else lastTap = now;
+    }
+    swipe = null;
+  }
+}
+function bindInput() {
+  stage.addEventListener("pointerdown", onDown);
+  window.addEventListener("pointermove", onMove, { passive: true });
+  window.addEventListener("pointerup", onUp);
+  window.addEventListener("pointercancel", onUp);
+  stage.addEventListener("touchstart", (e2) => {
+    if (isDrawMode()) e2.preventDefault();
+  }, { passive: false });
+  stage.addEventListener("touchmove", (e2) => {
+    if (isDrawMode() || e2.touches.length > 1) e2.preventDefault();
+  }, { passive: false });
+  stage.addEventListener("contextmenu", (e2) => e2.preventDefault());
+  stage.addEventListener("wheel", (e2) => {
+    e2.preventDefault();
+    const r2 = stage.getBoundingClientRect();
+    if (e2.ctrlKey || e2.metaKey) zoomAt(e2.clientX - r2.left, e2.clientY - r2.top, S.zoom * Math.exp(-e2.deltaY * 0.01));
+    else if (S.zoom > 1) {
+      S.ox -= e2.deltaX;
+      S.oy -= e2.deltaY;
+      clampPan();
+      applyTransform();
+      scheduleRedraw();
+    }
+  }, { passive: false });
+  stage.addEventListener("click", (e2) => {
+    const nav2 = e2.target.closest?.(".nav");
+    if (nav2 && S.mode === "move") {
+      gotoPage(nav2.dataset.goto);
+      return;
+    }
+    if (S.mode === "text" && !e2.target.closest?.(".obj")) {
+      const p2 = toLogical(e2.clientX, e2.clientY);
+      if (p2.x < 0 || p2.y < 0 || p2.x > W || p2.y > H) return;
+      createText(p2.x, p2.y);
+    }
+  });
+}
+function setMode(m2) {
+  S.mode = m2;
+  document.body.className = `mode-${m2}${isDrawMode() ? " mode-draw" : ""}`;
+  $$("#tools [data-mode]").forEach((b2) => b2.classList.toggle("on", b2.dataset.mode === m2));
+  if (m2 !== "move" && m2 !== "text") select(null);
+  renderColors();
+  $("#sizes").classList.toggle("dim", m2 === "move");
+  refreshEditable();
+}
+function renderColors() {
+  const isHl = S.mode === "highlighter";
+  const list = isHl ? HL_COLORS : PEN_COLORS;
+  const cur = isHl ? S.hlColor : S.color;
+  const el = $("#colors");
+  el.innerHTML = list.map(([c2, n2]) => `<button class="sw${c2 === cur ? " on" : ""}" data-color="${c2}" style="--c:${c2}" aria-label="${n2}" title="${n2}"></button>`).join("");
+  el.classList.toggle("dim", S.mode === "eraser" || S.mode === "move" && getSelected()?.type !== "text");
+}
+function renderSizes() {
+  $$("#sizes [data-size]").forEach((b2) => b2.classList.toggle("on", Number(b2.dataset.size) === S.sizeIdx));
+}
+function updateCtxUI(sel) {
+  const ctx = $("#ctx");
+  ctx.hidden = !sel;
+  if (sel) {
+    ctx.classList.toggle("is-text", sel.type === "text");
+    ctx.classList.toggle("is-img", sel.type !== "text");
+  }
+  if (S.mode === "move") renderColors();
+}
+function bindToolbar() {
+  $("#tools").addEventListener("click", (e2) => {
+    const b2 = e2.target.closest("[data-mode]");
+    if (b2) setMode(b2.dataset.mode);
+  });
+  $("#colors").addEventListener("click", (e2) => {
+    const b2 = e2.target.closest("[data-color]");
+    if (!b2) return;
+    if (S.mode === "highlighter") S.hlColor = b2.dataset.color;
+    else S.color = b2.dataset.color;
+    const sel = getSelected();
+    if (sel && sel.type === "text" && S.mode !== "highlighter") {
+      sel.color = b2.dataset.color;
+      touch(sel);
+      persist("objects", [sel]).catch(() => {
+      });
+      renderObjects();
+    }
+    renderColors();
+  });
+  $("#sizes").addEventListener("click", (e2) => {
+    const b2 = e2.target.closest("[data-size]");
+    if (b2) {
+      S.sizeIdx = Number(b2.dataset.size);
+      renderSizes();
+    }
+  });
+  $("#btn-undo").onclick = undo;
+  $("#btn-redo").onclick = redo;
+  $("#btn-photo").onclick = () => pickImage(false);
+  $("#btn-stickers").onclick = openStickers;
+  $("#ctx-delete").onclick = () => deleteSelected();
+  $("#ctx-bigger").onclick = () => bumpFont(1);
+  $("#ctx-smaller").onclick = () => bumpFont(-1);
+  $("#ctx-front").onclick = () => bringFront();
+  $("#ctx-sticker").onclick = async () => {
+    if (await selectedToSticker()) toast("Ajout\xE9 \xE0 tes stickers \u2605");
+  };
+  $("#btn-prev").onclick = () => step(-1);
+  $("#btn-next").onclick = () => step(1);
+  $("#btn-today").onclick = () => goto(S.view, today());
+  $("#view-seg").addEventListener("click", (e2) => {
+    const b2 = e2.target.closest("[data-view]");
+    if (b2) switchView(b2.dataset.view);
+  });
+  $("#btn-search").onclick = openSearch;
+  $("#btn-menu").onclick = openMenu;
+  document.addEventListener("keydown", (e2) => {
+    if (e2.target.isContentEditable || /INPUT|TEXTAREA/.test(e2.target.tagName)) return;
+    if ((e2.metaKey || e2.ctrlKey) && e2.key.toLowerCase() === "z") {
+      e2.preventDefault();
+      e2.shiftKey ? redo() : undo();
+    } else if (e2.key === "ArrowLeft") step(-1);
+    else if (e2.key === "ArrowRight") step(1);
+    else if ((e2.key === "Delete" || e2.key === "Backspace") && S.selectedId) deleteSelected();
+  });
+}
+var pickSticker = false;
+function pickImage(sticker) {
+  pickSticker = sticker;
+  const inp = $("#file-image");
+  inp.value = "";
+  inp.click();
+}
+async function onImagePicked() {
+  const f2 = $("#file-image").files?.[0];
+  if (!f2) return;
+  try {
+    if (pickSticker) {
+      await addImage(f2, { sticker: true, placeIt: false });
+      await renderStickerGrid();
+      toast("Sticker ajout\xE9 \u2605");
+    } else {
+      await addImage(f2);
+    }
+  } catch (e2) {
+    toast("Image impossible \xE0 ajouter : " + e2.message);
+  }
+}
+var stickerEditing = false;
+async function renderStickerGrid() {
+  const list = (await byIndex("assets", "isSticker", 1)).filter((a2) => !a2.deleted).sort((a2, b2) => (b2.createdAt || 0) - (a2.createdAt || 0));
+  const g2 = $("#st-grid");
+  g2.classList.toggle("editing", stickerEditing);
+  if (!list.length) {
+    g2.innerHTML = '<p class="empty">Aucun sticker pour l\u2019instant. Ajoute une image (PNG d\xE9tour\xE9 id\xE9alement) ou colle un sujet copi\xE9 depuis Photos.</p>';
+    return;
+  }
+  g2.innerHTML = list.map((a2) => `<button class="st" data-id="${a2.id}"><img alt=""><span class="x" data-remove="${a2.id}">\xD7</span></button>`).join("");
+  for (const a2 of list) assetURL(a2.id).then((u2) => {
+    const im = g2.querySelector(`.st[data-id="${a2.id}"] img`);
+    if (im && u2) im.src = u2;
+  });
+}
+function openStickers() {
+  stickerEditing = false;
+  $("#st-edit").textContent = "Modifier";
+  renderStickerGrid();
+  $("#dlg-stickers").showModal();
+}
+async function pasteImage() {
+  try {
+    if (!navigator.clipboard?.read) throw new Error("non pris en charge par ce navigateur");
+    const items = await navigator.clipboard.read();
+    for (const it of items) {
+      const type = it.types.find((t2) => t2.startsWith("image/"));
+      if (type) {
+        await addImage(await it.getType(type), { sticker: true, placeIt: false });
+        await renderStickerGrid();
+        toast("Sticker ajout\xE9 \u2605");
+        return;
+      }
+    }
+    toast("Aucune image dans le presse-papiers");
+  } catch (e2) {
+    toast("Collage impossible : " + e2.message);
+  }
+}
+function bindStickers() {
+  $("#file-image").addEventListener("change", onImagePicked);
+  $("#st-add").onclick = () => pickImage(true);
+  $("#st-paste").onclick = pasteImage;
+  $("#st-edit").onclick = () => {
+    stickerEditing = !stickerEditing;
+    $("#st-edit").textContent = stickerEditing ? "Termin\xE9" : "Modifier";
+    renderStickerGrid();
+  };
+  $("#st-grid").addEventListener("click", async (e2) => {
+    const rm = e2.target.closest("[data-remove]");
+    if (rm) {
+      e2.stopPropagation();
+      const a3 = await get("assets", rm.dataset.remove);
+      if (a3) {
+        a3.isSticker = 0;
+        touch(a3);
+        await persist("assets", [a3]);
+        renderStickerGrid();
+      }
+      return;
+    }
+    const b2 = e2.target.closest(".st");
+    if (!b2 || stickerEditing) return;
+    const a2 = await get("assets", b2.dataset.id);
+    if (!a2) return;
+    $("#dlg-stickers").close();
+    placeAsset(a2);
+  });
+  document.addEventListener("paste", async (e2) => {
+    if (e2.target.isContentEditable || /INPUT|TEXTAREA/.test(e2.target.tagName)) return;
+    const item = [...e2.clipboardData?.items || []].find((i2) => i2.type.startsWith("image/"));
+    if (!item) return;
+    e2.preventDefault();
+    try {
+      await addImage(item.getAsFile(), { sticker: true });
+      toast("Image coll\xE9e");
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+}
+function highlight(text, q) {
+  const terms = norm(q).split(" ").filter(Boolean);
+  const n2 = norm(text);
+  let out = esc(text);
+  if (n2.length === text.length) {
+    const ranges = [];
+    for (const t2 of terms) {
+      let i2 = n2.indexOf(t2);
+      while (i2 >= 0) {
+        ranges.push([i2, i2 + t2.length]);
+        i2 = n2.indexOf(t2, i2 + t2.length);
+      }
+    }
+    ranges.sort((a2, b2) => b2[0] - a2[0]);
+    let s2 = text;
+    const parts = [];
+    let end = s2.length;
+    for (const [a2, b2] of ranges) {
+      if (b2 > end) continue;
+      parts.unshift(esc(s2.slice(b2, end)));
+      parts.unshift(`<mark>${esc(s2.slice(a2, b2))}</mark>`);
+      end = a2;
+    }
+    parts.unshift(esc(s2.slice(0, end)));
+    out = parts.join("");
+  }
+  return out;
+}
+var searchSeq = 0;
+async function runSearch() {
+  const q = $("#search-input").value;
+  const seq = ++searchSeq;
+  const res = await search(q);
+  if (seq !== searchSeq) return;
+  const st = await ocrStats();
+  $("#search-info").textContent = q.trim() ? `${res.length} r\xE9sultat${res.length > 1 ? "s" : ""} \xB7 ${st.pages} page${st.pages > 1 ? "s" : ""} index\xE9e${st.pages > 1 ? "s" : ""}${st.pending ? ` \xB7 ${st.pending} en attente de connexion` : ""}` : `${st.pages} page${st.pages > 1 ? "s" : ""} index\xE9e${st.pages > 1 ? "s" : ""}${st.pending ? ` \xB7 ${st.pending} en attente` : ""}${S.settings.ocr ? "" : " \xB7 reconnaissance de l\u2019\xE9criture d\xE9sactiv\xE9e"}`;
+  $("#search-results").innerHTML = res.slice(0, 200).map((r2, i2) => `<li><button data-i="${i2}"><div class="r-page">${r2.kind === "ink" ? "\u270D\uFE0E" : "T"} \xB7 ${esc(pageLabel(r2.pageId))}</div><div class="r-text">${highlight(r2.text, q)}</div></button></li>`).join("");
+  $("#search-results").onclick = async (e2) => {
+    const b2 = e2.target.closest("[data-i]");
+    if (!b2) return;
+    const r2 = res[Number(b2.dataset.i)];
+    $("#dlg-search").close();
+    await gotoPage(r2.pageId);
+    flashRect(r2.bb);
+  };
+}
+function openSearch() {
+  $("#dlg-search").showModal();
+  $("#search-input").focus();
+  runSearch();
+}
+var preparedBackup = null;
+var preparedImage = null;
+async function openMenu() {
+  preparedBackup = null;
+  preparedImage = null;
+  await renderMenu();
+  $("#dlg-menu").showModal();
+}
+async function renderMenu() {
+  const lastExport = await getMeta("lastExport");
+  const persisted = navigator.storage?.persisted ? await navigator.storage.persisted() : false;
+  const est = navigator.storage?.estimate ? await navigator.storage.estimate() : null;
+  const [nS, nO, nA] = await Promise.all([count("strokes"), count("objects"), count("assets")]);
+  const st = await ocrStats();
+  const c2 = syncState.cfg;
+  const syncLine = {
+    off: "Non configur\xE9e",
+    idle: "En attente",
+    running: "Synchronisation\u2026",
+    ok: "\xC0 jour \u2713",
+    offline: "Hors ligne",
+    error: "Erreur",
+    auth: "Reconnexion n\xE9cessaire"
+  }[syncState.status] || syncState.status;
+  $("#menu-body").innerHTML = `
+  <section class="card">
+    <h3>\u{1F4BE} Sauvegarde dans un fichier</h3>
+    <p class="muted small">Tout est d\xE9j\xE0 enregistr\xE9 automatiquement sur l\u2019iPad \xE0 chaque trait. Ce fichier est une copie de secours compl\xE8te (encre, textes, photos) \xE0 garder dans Fichiers / iCloud Drive.</p>
+    <p class="small">Derni\xE8re sauvegarde fichier : <b>${fmtDateTime(lastExport)}</b></p>
+    <div class="row wrap" style="padding:0">
+      <button class="btn" id="m-backup">${preparedBackup ? `Enregistrer le fichier (${fmtBytes(preparedBackup.size)})` : "Cr\xE9er une sauvegarde"}</button>
+      <button class="btn ghost" id="m-restore">Restaurer un fichier\u2026</button>
+      <button class="btn ghost" id="m-png">${preparedImage ? "Enregistrer l\u2019image" : "Exporter cette page en image"}</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>\u2601\uFE0E Synchronisation (serveur PocketBase)</h3>
+    ${c2?.token ? `
+      <div class="kv"><b>Serveur</b><span>${esc(c2.url)}</span><b>Compte</b><span>${esc(c2.email)}</span>
+      <b>\xC9tat</b><span>${esc(syncLine)}${syncState.message ? " \u2014 " + esc(syncState.message) : ""}</span>
+      <b>Derni\xE8re synchro</b><span>${fmtDateTime(syncState.lastSync)}</span></div>
+      <div class="row"><button class="btn" id="m-syncnow">Synchroniser maintenant</button><button class="btn ghost" id="m-logout">Se d\xE9connecter</button></div>` : `
+      <p class="muted small">Optionnel : envoie une copie de tout vers ton propre serveur, automatiquement. Voir le guide (README) pour l\u2019installer gratuitement.</p>
+      ${syncState.status === "auth" ? '<p class="no small">Session expir\xE9e : reconnecte-toi. Rien n\u2019est perdu.</p>' : ""}
+      <label class="field">Adresse du serveur<input type="url" id="m-url" placeholder="https://mon-serveur.exemple.com" value="${esc(c2?.url || "")}" autocapitalize="off" autocorrect="off"></label>
+      <label class="field">E-mail<input type="email" id="m-email" value="${esc(c2?.email || "")}" autocapitalize="off"></label>
+      <label class="field">Mot de passe<input type="password" id="m-pass"></label>
+      <div class="row"><button class="btn" id="m-login">Se connecter</button></div>`}
+  </section>
+
+  <section class="card">
+    <h3>\u{1F6E1}\uFE0F Protection des donn\xE9es</h3>
+    <div class="kv">
+      <b>Ouvert depuis l\u2019\xE9cran d\u2019accueil</b><span class="${isStandalone() ? "yes" : "no"}">${isStandalone() ? "Oui" : "Non \u2014 ajoute l\u2019appli \xE0 l\u2019\xE9cran d\u2019accueil"}</span>
+      <b>Stockage persistant</b><span class="${persisted ? "yes" : "no"}">${persisted ? "Oui" : "Non accord\xE9"}</span>
+      <b>Espace utilis\xE9</b><span>${est ? fmtBytes(est.usage) : "?"}</span>
+      <b>Contenu</b><span>${nS} traits \xB7 ${nO} textes/images \xB7 ${nA} fichiers image</span>
+    </div>
+    <p class="muted small">Rien n\u2019est jamais vraiment effac\xE9 : la gomme et \xAB Supprimer \xBB masquent l\u2019\xE9l\xE9ment (annulable), et les sauvegardes le conservent.</p>
+  </section>
+
+  <section class="card">
+    <h3>\u{1F50D} Recherche dans l\u2019\xE9criture</h3>
+    <label class="toggle"><span>Reconna\xEEtre mon \xE9criture pour la recherche<br><span class="muted small">Les traits (pas les photos) sont envoy\xE9s au service d\u2019\xE9criture manuscrite de Google pour \xEAtre lus.</span></span><input type="checkbox" id="m-ocr" ${S.settings.ocr ? "checked" : ""}></label>
+    <p class="small">${st.pages} page(s) index\xE9e(s)${st.pending ? ` \xB7 ${st.pending} en attente` : ""}${ocrStatus.lastError ? ` \xB7 <span class="no">derni\xE8re erreur : ${esc(ocrStatus.lastError)}</span>` : ""}</p>
+    <div class="row"><button class="btn ghost" id="m-reindex">R\xE9-analyser toutes les pages</button></div>
+  </section>
+
+  <section class="card">
+    <h3>\u2699\uFE0E R\xE9glages</h3>
+    <label class="toggle"><span>\xC9crire aussi avec le doigt<br><span class="muted small">D\xE9sactiv\xE9 : le doigt sert \xE0 tourner les pages (glisser) et zoomer (pincer), seul l\u2019Apple Pencil \xE9crit.</span></span><input type="checkbox" id="m-finger" ${S.settings.fingerDraw ? "checked" : ""}></label>
+  </section>
+
+  <section class="card">
+    <h3>\u{1F4A1} Astuces</h3>
+    <p class="small">\u2022 Glisse un doigt \xE0 gauche/droite pour changer de page, pince pour zoomer, double-tape pour revenir.<br>
+    \u2022 Outil <b>D\xE9placer</b> : touche un num\xE9ro de jour pour ouvrir sa page, d\xE9place/redimensionne photos et textes (rond violet).<br>
+    \u2022 Outil <b>Texte</b> : touche la page pour \xE9crire au clavier.<br>
+    \u2022 Les traits du surligneur passent sous l\u2019encre, comme sur papier.</p>
+    <p class="muted small">Calenstine v${VERSION}</p>
+  </section>`;
+  const mb = $("#menu-body");
+  $("#m-backup", mb).onclick = async () => {
+    if (preparedBackup) {
+      const r2 = await shareFile(preparedBackup);
+      if (r2 !== "cancelled") {
+        await setMeta("lastExport", Date.now());
+        toast("Sauvegarde enregistr\xE9e \u2713");
+        hideBanner("backup");
+      }
+      preparedBackup = null;
+      renderMenu();
+      return;
+    }
+    $("#m-backup", mb).disabled = true;
+    $("#m-backup", mb).textContent = "Pr\xE9paration\u2026";
+    try {
+      flushPendingText();
+      preparedBackup = await buildBackup();
+    } catch (e2) {
+      toast("Erreur : " + e2.message);
+    }
+    renderMenu();
+  };
+  $("#m-restore", mb).onclick = () => {
+    const i2 = $("#file-backup");
+    i2.value = "";
+    i2.click();
+  };
+  $("#m-png", mb).onclick = async () => {
+    if (preparedImage) {
+      await shareFile(preparedImage);
+      preparedImage = null;
+      renderMenu();
+      return;
+    }
+    $("#m-png", mb).disabled = true;
+    $("#m-png", mb).textContent = "Pr\xE9paration\u2026";
+    try {
+      preparedImage = await renderPagePNG();
+    } catch (e2) {
+      toast("Erreur : " + e2.message);
+    }
+    renderMenu();
+  };
+  $("#m-login", mb) && ($("#m-login", mb).onclick = async () => {
+    const b2 = $("#m-login", mb);
+    b2.disabled = true;
+    b2.textContent = "Connexion\u2026";
+    try {
+      await login($("#m-url", mb).value, $("#m-email", mb).value, $("#m-pass", mb).value);
+      toast("Connect\xE9 \u2713 \u2014 synchronisation en cours");
+    } catch (e2) {
+      toast("Connexion impossible : " + e2.message, 4e3);
+    }
+    renderMenu();
+  });
+  $("#m-syncnow", mb) && ($("#m-syncnow", mb).onclick = async () => {
+    await syncNow();
+    renderMenu();
+  });
+  $("#m-logout", mb) && ($("#m-logout", mb).onclick = async () => {
+    await logout();
+    renderMenu();
+  });
+  $("#m-ocr", mb).onchange = (e2) => {
+    S.settings.ocr = e2.target.checked;
+    saveSettings();
+    if (S.settings.ocr) retryPending();
+  };
+  $("#m-finger", mb).onchange = (e2) => {
+    S.settings.fingerDraw = e2.target.checked;
+    saveSettings();
+  };
+  $("#m-reindex", mb).onclick = async () => {
+    const b2 = $("#m-reindex", mb);
+    b2.disabled = true;
+    b2.textContent = "Analyse en cours\u2026";
+    try {
+      const r2 = await reindexAll();
+      toast(`${r2.pages} page(s) analys\xE9e(s)${r2.failed ? ` \xB7 ${r2.failed} morceau(x) en attente` : ""}`);
+    } catch (e2) {
+      toast("Erreur : " + e2.message);
+    }
+    renderMenu();
+  };
+}
+function bindMenu() {
+  $$("dialog [data-close]").forEach((b2) => b2.addEventListener("click", () => b2.closest("dialog").close()));
+  $$("dialog").forEach((d2) => d2.addEventListener("click", (e2) => {
+    if (e2.target === d2) d2.close();
+  }));
+  $("#search-input").addEventListener("input", runSearch);
+  $("#file-backup").addEventListener("change", async () => {
+    const f2 = $("#file-backup").files?.[0];
+    if (!f2) return;
+    try {
+      const c2 = await importBackup(f2);
+      toast(`Restaur\xE9 : ${c2.strokes} traits, ${c2.objects} textes/images, ${c2.assets} fichiers`, 4e3);
+      await loadPageData();
+      retryPending();
+    } catch (e2) {
+      toast("Restauration impossible : " + e2.message, 4e3);
+    }
+    if ($("#dlg-menu").open) renderMenu();
+  });
+}
+function updateSaveUI() {
+  const el = $("#save-status");
+  if (S.saveError) {
+    el.textContent = "\u26A0 Non enregistr\xE9";
+    el.className = "chip err";
+  } else if (S.pendingSaves > 0) {
+    el.textContent = "Enregistrement\u2026";
+    el.className = "chip";
+  } else {
+    el.textContent = "\u2713 Enregistr\xE9";
+    el.className = "chip ok";
+  }
+}
+function updateSyncUI() {
+  const el = $("#sync-status");
+  const s2 = syncState.status;
+  el.hidden = s2 === "off";
+  const t2 = syncState.lastSync ? new Date(syncState.lastSync).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
+  el.textContent = { idle: "\u2601\uFE0E \u2026", running: "\u2601\uFE0E Synchro\u2026", ok: `\u2601\uFE0E \u2713 ${t2}`, offline: "\u2601\uFE0E Hors ligne", error: "\u2601\uFE0E \u26A0 Erreur", auth: "\u2601\uFE0E \u26A0 Reconnexion" }[s2] || "\u2601\uFE0E";
+  el.className = "chip " + (s2 === "ok" ? "ok" : s2 === "error" || s2 === "auth" ? "warn" : "");
+  el.title = syncState.message || "";
+  if (s2 === "auth") showBanner("auth", "Synchronisation en pause : reconnecte-toi. Tes donn\xE9es restent enregistr\xE9es sur l\u2019iPad.", [["Ouvrir", openMenu]]);
+  else hideBanner("auth");
+}
+function showBanner(id, text, actions = [], cls = "") {
+  let el = document.getElementById("banner-" + id);
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "banner-" + id;
+    $("#banners").appendChild(el);
+  }
+  el.className = "banner " + cls;
+  el.innerHTML = `<p>${text}</p>`;
+  for (const [label, fn] of actions) {
+    const b2 = document.createElement("button");
+    b2.textContent = label;
+    b2.onclick = fn;
+    el.appendChild(b2);
+  }
+  const x2 = document.createElement("button");
+  x2.textContent = "\u2715";
+  x2.setAttribute("aria-label", "Fermer");
+  x2.onclick = () => el.remove();
+  el.appendChild(x2);
+}
+function hideBanner(id) {
+  document.getElementById("banner-" + id)?.remove();
+}
+async function checkBanners() {
+  if (isIOS() && !isStandalone()) {
+    showBanner("install", "<b>Important :</b> pour que tes donn\xE9es soient bien prot\xE9g\xE9es, touche <b>Partager</b> \u2192 <b>\xAB Sur l\u2019\xE9cran d\u2019accueil \xBB</b>, puis ouvre Calenstine depuis son ic\xF4ne.");
+  }
+  const n2 = await count("strokes");
+  const lastExport = await getMeta("lastExport");
+  const synced = !!syncState.cfg?.token;
+  if (n2 > 20 && !synced && (!lastExport || Date.now() - lastExport > 7 * 864e5)) {
+    showBanner("backup", `Pense \xE0 faire une copie de secours (derni\xE8re : ${fmtDateTime(lastExport)}).`, [["Sauvegarder", openMenu]]);
+  }
+}
+async function protectStorage() {
+  try {
+    if (navigator.storage?.persist && !await navigator.storage.persisted()) await navigator.storage.persist();
+  } catch {
+  }
+}
+function registerSW() {
+  if (!("serviceWorker" in navigator)) return;
+  navigator.serviceWorker.register("sw.js").then((reg) => {
+    const onWaiting = (w2) => showBanner("update", "Une nouvelle version de Calenstine est disponible.", [["Mettre \xE0 jour", () => w2.postMessage("skipWaiting")]]);
+    if (reg.waiting && navigator.serviceWorker.controller) onWaiting(reg.waiting);
+    reg.addEventListener("updatefound", () => {
+      const w2 = reg.installing;
+      w2?.addEventListener("statechange", () => {
+        if (w2.state === "installed" && navigator.serviceWorker.controller) onWaiting(w2);
+      });
+    });
+    setInterval(() => reg.update().catch(() => {
+    }), 36e5);
+  }).catch((e2) => console.warn("SW", e2));
+  let reloading = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!reloading) {
+      reloading = true;
+      flushPendingText();
+      location.reload();
+    }
+  });
+}
+async function start() {
+  loadSettings();
+  try {
+    await openDB();
+  } catch (e2) {
+    document.body.innerHTML = `<div style="padding:30px;font-size:17px">Impossible d\u2019ouvrir le stockage local : ${esc(e2.message)}.<br>Ferme les autres onglets Calenstine puis recharge.</div>`;
+    return;
+  }
+  initCanvases($("#cv-hl"), $("#cv-ink"), $("#cv-live"));
+  initObjects(layer2, { pushUndo, onSelect: updateCtxUI, visibleCenter, setMode });
+  bindToolbar();
+  bindInput();
+  bindStickers();
+  bindMenu();
+  setMode("pen");
+  renderSizes();
+  on("save-state", updateSaveUI);
+  on("save-error", () => showBanner("saveerr", "\u26A0 Un enregistrement a \xE9chou\xE9. Fais une sauvegarde fichier (Menu) par pr\xE9caution, puis recharge l\u2019appli.", [["Menu", openMenu]], "err"));
+  on("sync-state", updateSyncUI);
+  on("remote-changed", ({ pageIds, assets }) => {
+    if (drawing || erasing) return;
+    if (pageIds.includes(S.pageId) || assets.length) {
+      for (const a2 of assets) forgetAsset(a2);
+      loadPageData();
+    }
+  });
+  let rz = 0;
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(rz);
+    rz = requestAnimationFrame(layout);
+  });
+  window.addEventListener("pagehide", () => flushPendingText());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushPendingText();
+  });
+  const v2 = localStorage.getItem("calenstine.view");
+  await goto(["day", "week", "month", "year"].includes(v2) ? v2 : "month", today());
+  initOCR();
+  await initSync();
+  protectStorage();
+  checkBanners();
+  registerSW();
+  window.__calenstine = { S, db: db_exports, goto, gotoPage, sync: sync_exports, ocr: ocr_exports, backup: backup_exports, objs: objects_exports };
+}
+start();
+export {
+  VERSION
+};
+
+</script>
+</body>
+</html>
